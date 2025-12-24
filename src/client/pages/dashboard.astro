@@ -1,3 +1,4 @@
+
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Header from '../components/dashboard_clients/Header';
@@ -13,3 +14,128 @@ import DashboardComponent from '../components/dashboard_clients/Dashboard';
     
     <DashboardComponent client:load />
 </DashboardLayout>
+
+<style is:global>
+    /* --- DASHBOARD & CLIENT CARD STYLES --- */
+
+    /* Header */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+
+    .brand-title {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 4vw, 3rem);
+        text-transform: uppercase;
+        line-height: 0.9;
+        color: var(--accent);
+        margin: 0;
+    }
+
+    .brand-subtitle {
+        display: block;
+        font-size: 0.9rem;
+        color: #fff;
+        letter-spacing: 2px;
+        margin-top: 0.5rem;
+    }
+
+    /* Grid Section */
+    .client-grid-section {
+        margin-bottom: 4rem;
+    }
+
+    .section-title {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        text-transform: uppercase;
+        color: #fff;
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--accent);
+        padding-left: 1rem;
+    }
+
+    .client-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+
+    /* Client Card */
+    .client-card {
+        display: block;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+        text-decoration: none; /* Reset link style */
+    }
+
+    .client-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .client-card-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .client-card-image {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-bottom: 1px solid var(--border);
+        background: #222;
+    }
+
+    .client-card-content {
+        padding: 1.5rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .client-card-title {
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        color: #fff;
+        margin-bottom: 0.5rem;
+    }
+
+    .client-card-desc {
+        font-size: 0.9rem;
+        color: #aaa;
+        margin-bottom: 1rem;
+        line-height: 1.4;
+    }
+
+    .client-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px dashed var(--border);
+        padding-top: 1rem;
+        font-size: 0.85rem;
+        color: var(--accent);
+        font-weight: bold;
+        margin-top: auto;
+    }
+</style>

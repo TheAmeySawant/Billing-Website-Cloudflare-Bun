@@ -14,22 +14,12 @@ interface ClientGridProps {
 
 export default function ClientGrid({ clients }: ClientGridProps) {
     return (
-        <div>
-            <h2 className="section-header" style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '2rem',
-                textTransform: 'uppercase',
-                color: '#fff',
-                marginBottom: '2rem',
-                borderLeft: '4px solid var(--accent)',
-                paddingLeft: '1rem'
-            }}>Clients</h2>
+        <div className="client-grid-section">
+            <h2 className="section-title">
+                Clients
+            </h2>
 
-            <div className="clients-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: '2rem'
-            }}>
+            <div className="client-grid">
                 {clients.map(client => (
                     <ClientCard
                         key={client.id}
