@@ -1,0 +1,15 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import Header from '../components/dashboard_clients/Header';
+import DashboardComponent from '../components/dashboard_clients/Dashboard';
+
+// Since we are using React components that need interactivity (useState for Modal), 
+// we must make sure to hydrate the DashboardComponent.
+---
+
+<DashboardLayout>
+    <Header client:load /> 
+    <!-- Header is static mostly but if we want responsive JS inside it later or just consistency -->
+    
+    <DashboardComponent client:load />
+</DashboardLayout>

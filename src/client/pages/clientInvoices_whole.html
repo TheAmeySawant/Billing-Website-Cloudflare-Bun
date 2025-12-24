@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monthly Invoices | dzynsbysoham</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --surface: #121212;
+            --text: #e0e0e0;
+            --accent: #ccff00;
+            /* Neon Lime */
+            --accent-glow: rgba(204, 255, 0, 0.4);
+            --border: #333;
+            --font-main: 'Space Grotesk', sans-serif;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: none;
+            /* Desktop cursor default */
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hide default scrollbar globally */
+        html,
+        body {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari/Blink */
+        }
+
+        /* --- SCROLL INDICATOR --- */
+        .scroll-progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            /* Faint track */
+            z-index: 10002;
+            /* Above cursor (10001) and modal (10000) */
+        }
+
+        .scroll-progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.1s;
+        }
+
+        /* --- CUSTOM CURSOR (Desktop Only) --- */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10001;
+            /* Above modal */
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+            display: block;
+        }
+
+        .cursor.hovered {
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent);
+            opacity: 0.8;
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .brand h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            /* Fluid font size */
+            text-transform: uppercase;
+            line-height: 0.9;
+            color: var(--accent);
+        }
+
+        .brand span {
+            display: block;
+            font-size: 1rem;
+            color: #fff;
+            letter-spacing: 2px;
+            margin-top: 0.5rem;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 2rem;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            font-family: var(--font-main);
+        }
+
+        .btn-primary:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* --- CLIENT SECTION --- */
+        .client-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .client-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .info-block.right-align {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .info-block h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        .info-block h3 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            color: #fff;
+        }
+
+        .info-block p {
+            color: #aaa;
+            font-size: 1rem;
+        }
+
+        /* --- INVOICE GRID --- */
+        .invoice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .invoice-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 200px;
+        }
+
+        .invoice-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .invoice-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 0%;
+            background: var(--accent);
+            transition: height 0.3s ease;
+        }
+
+        .invoice-card:hover::before {
+            height: 100%;
+        }
+
+        .card-date {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        .card-year {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: auto;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--border);
+        }
+
+        .status-badge {
+            padding: 0.2rem 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            border: 1px solid currentColor;
+            display: inline-block;
+        }
+
+        .status-pending {
+            color: orange;
+            border-color: orange;
+        }
+
+        .status-paid {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 0.5rem 1rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            font-family: var(--font-main);
+        }
+
+        .btn-delete:hover {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        /* --- MODAL --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #050505;
+            border: 2px solid var(--accent);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 50px var(--accent-glow);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #888;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 1rem 2rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            font-family: var(--font-main);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        /* --- MOBILE RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .cursor {
+                display: none !important;
+            }
+
+            * {
+                cursor: auto !important;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .controls {
+                justify-content: flex-start;
+            }
+
+            .btn-primary {
+                width: 100%;
+                text-align: center;
+            }
+
+            /* Stack Client Section */
+            .client-section {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+                gap: 2rem;
+            }
+
+            .info-block.right-align {
+                text-align: left;
+                /* Reset alignment */
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="cursor"></div>
+    <div class="bg-grid"></div>
+
+    <!-- SCROLL INDICATOR -->
+    <div class="scroll-progress-container">
+        <div class="scroll-progress-bar" id="scrollBar"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>dzynsby<br>soham</h1>
+                <span>ADMIN PANEL</span>
+            </div>
+        </header>
+
+        <section class="client-section">
+            <div class="info-block">
+                <h2>Client</h2>
+                <h3>Dark Winter</h3>
+                <p>Music Production and Bundle</p>
+            </div>
+            <div class="info-block right-align">
+                <h2>Total Invoices</h2>
+                <h3 id="totalInvoices">0</h3>
+                <div style="margin-top: 1rem;">
+                    <h2>Total Earnings</h2>
+                    <h3 id="totalEarnings">$0</h3>
+                </div>
+            </div>
+        </section>
+
+        <h2
+            style="font-family: var(--font-display); font-size: 2rem; margin-bottom: 1rem; text-transform: uppercase; color: #fff;">
+            Monthly Invoices</h2>
+
+        <div class="controls">
+            <button class="btn-primary" id="btnNewInvoice">New Monthly Invoice</button>
+        </div>
+
+        <div class="invoice-grid" id="invoiceGrid">
+            <!-- Cards will be injected here via JS -->
+        </div>
+
+        <footer>
+            <p style="text-align: center; color: #555; margin-top: 3rem; font-size: 0.8rem;">&copy; 2025 dzynsbysoham.
+            </p>
+        </footer>
+    </div>
+
+    <!-- NEW INVOICE MODAL -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal-content">
+            <h3 class="modal-title">New Invoice</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Month</label>
+                    <select class="form-control" id="selectMonth">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <select class="form-control" id="selectYear">
+                        <!-- JS will populate years -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select class="form-control" id="selectStatus">
+                    <option value="Pending">Pending</option>
+                    <option value="Paid">Paid</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancel">Cancel</button>
+                <button class="btn-primary" id="btnSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div class="modal-backdrop" id="deleteModalBackdrop">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Delete</h3>
+            <p style="color: #ccc; margin-bottom: 2rem; font-size: 1.1rem;">Are you sure you want to delete this
+                invoice? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancelDelete">Cancel</button>
+                <button class="btn-primary" id="btnConfirmDelete"
+                    style="background: #ff4444; border-color: #ff4444; color: #fff;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DUPLICATE WARNING MODAL -->
+    <div class="modal-backdrop" id="duplicateModalBackdrop">
+        <div class="modal-content">
+            <h3 class="modal-title" style="color: #ff4444;">Duplicate Invoice</h3>
+            <p style="color: #ccc; margin-bottom: 2rem; font-size: 1.1rem;" id="duplicateMessage">
+                An invoice for this month and year already exists.
+            </p>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnOkDuplicate">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        let invoices = [
+            { id: 1, month: 'November', year: '2025', status: 'Pending', totalAmount: 400 },
+            { id: 2, month: 'October', year: '2025', status: 'Paid', totalAmount: 350 },
+            { id: 3, month: 'September', year: '2025', status: 'Paid', totalAmount: 300 }
+        ];
+
+        let invoiceToDeleteId = null;
+
+        const monthMap = {
+            "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
+            "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
+        };
+
+        // --- DOM ELEMENTS ---
+        const invoiceGrid = document.getElementById('invoiceGrid');
+
+        // New Invoice Modal Elements
+        const modalBackdrop = document.getElementById('modalBackdrop');
+        const btnNewInvoice = document.getElementById('btnNewInvoice');
+        const btnCancel = document.getElementById('btnCancel');
+        const btnSave = document.getElementById('btnSave');
+        const selectMonth = document.getElementById('selectMonth');
+        const selectYear = document.getElementById('selectYear');
+        const selectStatus = document.getElementById('selectStatus');
+
+        // Delete Modal Elements
+        const deleteModalBackdrop = document.getElementById('deleteModalBackdrop');
+        const btnCancelDelete = document.getElementById('btnCancelDelete');
+        const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+        // Duplicate Modal Elements
+        const duplicateModalBackdrop = document.getElementById('duplicateModalBackdrop');
+        const btnOkDuplicate = document.getElementById('btnOkDuplicate');
+        const duplicateMessage = document.getElementById('duplicateMessage');
+
+        // --- FUNCTIONS ---
+
+        function updateStats() {
+            const totalCount = invoices.length;
+            const totalEarned = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+
+            document.getElementById('totalInvoices').innerText = totalCount;
+            document.getElementById('totalEarnings').innerText = '$' + totalEarned;
+        }
+
+        function sortInvoices() {
+            invoices.sort((a, b) => {
+                const yearDiff = parseInt(b.year) - parseInt(a.year);
+                if (yearDiff !== 0) return yearDiff;
+                return monthMap[b.month] - monthMap[a.month];
+            });
+        }
+
+        function renderInvoices() {
+            sortInvoices(); // Sort before render
+            invoiceGrid.innerHTML = '';
+            invoices.forEach(invoice => {
+                const card = document.createElement('div');
+                card.className = 'invoice-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="card-date">${invoice.month}</div>
+                        <div class="card-year">${invoice.year}</div>
+                        <div style="color: var(--accent); margin-top: 0.5rem; font-weight: bold;">$${invoice.totalAmount || 0}</div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="status-badge ${invoice.status === 'Paid' ? 'status-paid' : 'status-pending'}">${invoice.status}</span>
+                        <button class="btn-delete" onclick="promptDelete(${invoice.id})">Delete</button>
+                    </div>
+                `;
+                invoiceGrid.appendChild(card);
+            });
+            updateStats(); // Update stats whenever we render
+            initHoverListeners(); // Re-attach cursor listeners
+        }
+
+        // Triggered by button click
+        function promptDelete(id) {
+            invoiceToDeleteId = id;
+            deleteModalBackdrop.classList.add('active');
+        }
+        // Expose to window
+        window.promptDelete = promptDelete;
+
+        function closeDeleteModal() {
+            deleteModalBackdrop.classList.remove('active');
+            invoiceToDeleteId = null;
+        }
+
+        function executeDelete() {
+            if (invoiceToDeleteId !== null) {
+                invoices = invoices.filter(inv => inv.id !== invoiceToDeleteId);
+                renderInvoices();
+                closeDeleteModal();
+            }
+        }
+
+        function openModal() {
+            // Set Defaults
+            const now = new Date();
+            const currentMonthName = now.toLocaleString('default', { month: 'long' });
+            const currentYear = now.getFullYear();
+
+            selectMonth.value = currentMonthName;
+            selectYear.value = currentYear.toString();
+            selectStatus.value = 'Pending';
+
+            modalBackdrop.classList.add('active');
+        }
+
+        function closeModal() {
+            modalBackdrop.classList.remove('active');
+        }
+
+        function populateYears() {
+            const currentYear = new Date().getFullYear();
+            // Generate range: 5 years back, 5 years forward
+            for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = i;
+                selectYear.appendChild(opt);
+            }
+        }
+
+        function saveInvoice() {
+            const selectedMonth = selectMonth.value;
+            const selectedYear = selectYear.value;
+
+            // Check for duplicate
+            const exists = invoices.some(inv => inv.month === selectedMonth && inv.year === selectedYear);
+            if (exists) {
+                duplicateMessage.innerText = `An invoice for ${selectedMonth} ${selectedYear} already exists.`;
+                duplicateModalBackdrop.classList.add('active');
+                return;
+            }
+
+            const newInvoice = {
+                id: Date.now(), // simple unique id
+                month: selectedMonth,
+                year: selectedYear,
+                status: selectStatus.value,
+                totalAmount: 0 // Default amount
+            };
+
+            invoices.push(newInvoice); // Add to array, specific position doesn't matter as we sort on render
+            renderInvoices();
+            closeModal();
+        }
+
+        function closeDuplicateModal() {
+            duplicateModalBackdrop.classList.remove('active');
+        }
+
+        // --- EVENT LISTENERS ---
+        // New Invoice Modal
+        btnNewInvoice.addEventListener('click', openModal);
+        btnCancel.addEventListener('click', closeModal);
+        btnSave.addEventListener('click', saveInvoice);
+
+        // Delete Modal
+        btnCancelDelete.addEventListener('click', closeDeleteModal);
+        btnConfirmDelete.addEventListener('click', executeDelete);
+
+        // Duplicate Modal
+        btnOkDuplicate.addEventListener('click', closeDuplicateModal);
+
+        // Click outside to close (all modals)
+        modalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modalBackdrop) closeModal();
+        });
+        deleteModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === deleteModalBackdrop) closeDeleteModal();
+        });
+        duplicateModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === duplicateModalBackdrop) closeDuplicateModal();
+        });
+
+        // --- CUSTOM CURSOR LOGIC ---
+        const cursor = document.querySelector('.cursor');
+        const isDesktop = window.matchMedia("(pointer: fine)").matches;
+
+        if (isDesktop && cursor) {
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            });
+        }
+
+        function initHoverListeners() {
+            if (!isDesktop || !cursor) return;
+
+            // Remove old listeners is hard without tracking, but adding multiple is okay for simple class toggles 
+            // as long as we don't leak memory too bad. 
+            // Better approach: toggle class on mouseenter/leave which is idempotent.
+
+            document.querySelectorAll('a, button, .invoice-card, select, input, .form-control').forEach(el => {
+                // Remove previous listeners to avoid duplicates if possible? 
+                // For simplicity in this vanilla generic file, we'll just add them. 
+                // To prevent duplicates, we could check a data attribute.
+                if (el.dataset.cursorAttached) return;
+
+                el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+                el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+                el.dataset.cursorAttached = "true";
+            });
+        }
+
+        // --- SCROLL PROGRESS LOGIC ---
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            const scrollBar = document.getElementById('scrollBar');
+            if (scrollBar) {
+                scrollBar.style.width = scrolled + '%';
+            }
+        });
+
+        // --- INITIALIZATION ---
+        populateYears();
+        renderInvoices(); // This calls initHoverListeners internally
+
+    </script>
+</body>
+
+</html>

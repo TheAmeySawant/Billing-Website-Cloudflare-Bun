@@ -1,0 +1,39 @@
+/* Global Reset & Custom Styles not covered by default Tailwind utilities */
+
+/* Font assignments */
+:root {
+  --font-main: "Space Grotesk", sans-serif;
+  --font-display: "Syne", sans-serif;
+}
+
+body {
+  font-family: var(--font-main);
+  @apply overflow-x-hidden bg-[#050505] leading-relaxed text-[#e0e0e0] antialiased;
+}
+
+/* Hide default scrollbar globally */
+html,
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Blink */
+}
+
+/* Cursor default */
+* {
+  cursor: none;
+}
+
+/* Mobile overrides */
+@media (max-width: 768px) {
+  .cursor-element {
+    display: none !important;
+  }
+  * {
+    cursor: auto !important;
+  }
+}

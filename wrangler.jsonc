@@ -1,5 +1,5 @@
 {
-  "name": "cloudflare-hono-waitlist-template",
+  "name": "billing-website-cloudflare-bun",
   "compatibility_date": "2025-12-13",
   "main": "src/server/index.ts",
   "assets": {
@@ -8,8 +8,8 @@
   },
   "d1_databases": [
     {
-      "binding": "DB",
-      "database_name": "dojo_local_db",
+      "binding": "billingDB",
+      "database_name": "billingLocalDB",
       "database_id": "123",
       "migrations_dir": "./src/server/db/migrations"
     }
@@ -19,13 +19,13 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "CF_ACCESS_DOMAIN": "https://amey01962.cloudflareaccess.com",
-        "POLICY_AUD": "9d85888a09d98edcbd2b3f2a4e85df012246dde1395f0b3761bcf1c492af103a"
+        "POLICY_AUD": "801d371005d81abd7cb2a9e61acb2c2184eb83251d23298180a31eb2eff1575f"
       },
       "d1_databases": [
         {
-          "binding": "DB",
-          "database_name": "dojo_staging_db",
-          "database_id": "3535f09b-1e02-4dff-82ba-6a1d1e4c9a36",
+          "binding": "billingDB",
+          "database_name": "billingDB",
+          "database_id": "913a5dd7-2a34-499d-95c4-ee6646390a35",
           "migrations_dir": "./src/server/db/migrations"
         }
       ]

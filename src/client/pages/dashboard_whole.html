@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Client Dashboard | dzynsbysoham</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        /* --- REUSED VARIABLES & BASE STYLES --- */
+        :root {
+            --bg: #050505;
+            --surface: #121212;
+            --text: #e0e0e0;
+            --accent: #ccff00;
+            /* Neon Lime */
+            --accent-glow: rgba(204, 255, 0, 0.4);
+            --border: #333;
+            --font-main: 'Space Grotesk', sans-serif;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: none;
+            /* Desktop cursor default */
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hide default scrollbar globally */
+        html,
+        body {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari/Blink */
+        }
+
+        /* --- SCROLL INDICATOR --- */
+        .scroll-progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            /* Faint track */
+            z-index: 10002;
+            /* Above cursor (10001) and modal (10000) */
+        }
+
+        .scroll-progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.1s;
+        }
+
+        /* --- CUSTOM CURSOR (Desktop Only) --- */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10001;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+            display: block;
+        }
+
+        .cursor.hovered {
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent);
+            opacity: 0.8;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .brand h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 3rem);
+            text-transform: uppercase;
+            line-height: 0.9;
+            color: var(--accent);
+        }
+
+        .brand span {
+            display: block;
+            font-size: 0.9rem;
+            color: #fff;
+            letter-spacing: 2px;
+            margin-top: 0.5rem;
+        }
+
+        /* --- CONTROLS SECTION --- */
+        .controls-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-container {
+            flex-grow: 1;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-family: var(--font-main);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            padding: 1rem 2rem;
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #fff;
+            border-color: #fff;
+        }
+
+        /* --- CLIENT LIST SECTION --- */
+        .section-header {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            text-transform: uppercase;
+            color: #fff;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border);
+            background: #222;
+            /* Placeholder color */
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed #333;
+            padding-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg);
+            border: 2px solid var(--accent);
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 0 50px var(--accent-glow);
+        }
+
+        .modal-header {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #888;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-family: var(--font-main);
+            outline: none;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .file-upload-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 2rem;
+            background: var(--surface);
+            border: 1px dashed var(--accent);
+            color: #888;
+            cursor: none;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .file-upload-box:hover {
+            background: rgba(204, 255, 0, 0.05);
+            color: #fff;
+            border-style: solid;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .cursor {
+                display: none !important;
+            }
+
+            * {
+                cursor: auto !important;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .controls-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .btn-primary {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="cursor"></div>
+    <div class="bg-grid"></div>
+
+    <!-- SCROLL INDICATOR -->
+    <div class="scroll-progress-container">
+        <div class="scroll-progress-bar" id="scrollBar"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>dzynsby<br>soham</h1>
+                <span>CLIENT DASHBOARD</span>
+            </div>
+        </header>
+
+        <section class="controls-section">
+            <div class="search-container">
+                <input type="text" placeholder="Search clients...">
+                <button>Search</button>
+            </div>
+            <button class="btn-primary" onclick="toggleModal()">+ New Client</button>
+        </section>
+
+        <h2 class="section-header">Clients</h2>
+
+        <div class="clients-grid">
+            <!-- Mock Card 1 -->
+            <article class="card">
+                <img src="https://placehold.co/400x300/333333/ccff00?text=Dark+Winter" alt="Client" class="card-image">
+                <div class="card-content">
+                    <div class="card-title">Dark Winter</div>
+                    <div class="card-desc">Music Production and Bundle design for the winter season cycle.</div>
+                    <div class="card-meta">
+                        <span>#DW003</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Mock Card 2 -->
+            <article class="card">
+                <img src="https://placehold.co/400x300/333333/ccff00?text=Neon+Tech" alt="Client" class="card-image">
+                <div class="card-content">
+                    <div class="card-title">Neon Tech Systems</div>
+                    <div class="card-desc">Full branding identity and website overhaul for tech startup.</div>
+                    <div class="card-meta">
+                        <span>#NT092</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Mock Card 3 -->
+            <article class="card">
+                <img src="https://placehold.co/400x300/333333/ccff00?text=Vortex" alt="Client" class="card-image">
+                <div class="card-content">
+                    <div class="card-title">Vortex Gaming</div>
+                    <div class="card-desc">Esports tournament assets and social media headers.</div>
+                    <div class="card-meta">
+                        <span>#VX118</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+
+    <!-- NEW CLIENT MODAL -->
+    <div class="modal-overlay" id="newClientModal">
+        <div class="modal-content">
+            <h3 class="modal-header">Add New Client</h3>
+
+            <div class="form-group">
+                <label>Client Name</label>
+                <input type="text" placeholder="e.g. Acme Corp">
+            </div>
+
+            <div class="form-group">
+                <label>Client Code</label>
+                <input type="text" placeholder="e.g. #AC001">
+            </div>
+
+            <div class="form-group">
+                <label>Client Image</label>
+                <input type="file" id="clientImage" accept="image/*" hidden>
+                <label for="clientImage" class="file-upload-box" id="fileUploadLabel">
+                    <span>Click to Upload Image</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea placeholder="Brief details about the client..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button onclick="toggleModal()">Cancel</button>
+                <button class="btn-primary" onclick="toggleModal()">Save Client</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal Logic
+        function toggleModal() {
+            const modal = document.getElementById('newClientModal');
+            modal.classList.toggle('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('newClientModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                toggleModal();
+            }
+        });
+
+        // File Upload Logic
+        const fileInput = document.getElementById('clientImage');
+        const fileLabel = document.getElementById('fileUploadLabel');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileLabel.innerHTML = `<span style="color:var(--accent)">${e.target.files[0].name}</span>`;
+            } else {
+                fileLabel.innerHTML = `<span>Click to Upload Image</span>`;
+            }
+        });
+
+        // Custom Cursor Logic (Copied from index.html)
+        if (window.matchMedia("(pointer: fine)").matches) {
+            const cursor = document.querySelector('.cursor');
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            });
+
+            // Add hover effect to interactive elements
+            const addHoverListeners = () => {
+                document.querySelectorAll('a, button, .card, input, textarea, .file-upload-box').forEach(el => {
+                    el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+                    el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+                });
+            };
+
+            addHoverListeners();
+        }
+
+        // Scroll Progress Logic
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('scrollBar').style.width = scrolled + '%';
+        });
+    </script>
+</body>
+
+</html>
