@@ -154,7 +154,7 @@ export default function InvoiceManager() {
 
             <div className="invoice-grid">
                 {sortedInvoices.map(invoice => (
-                    <a key={invoice.id} className="invoice-card" style={{textDecoration: 'none'}} href='/invoice_whole'>
+                    <a key={invoice.id} className="invoice-card" style={{textDecoration: 'none'}} href='/invoice'>
                         <div>
                             <div className="card-date">{invoice.month}</div>
                             <div className="card-year">{invoice.year}</div>
