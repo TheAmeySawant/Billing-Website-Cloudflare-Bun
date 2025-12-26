@@ -1,201 +1,225 @@
 ---
+
 ---
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Client Dashboard | dzynsbysoham</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@700;800&display=swap"
-        rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
     <style is:global>
-        /* --- REUSED VARIABLES & BASE STYLES --- */
-        :root {
-            --bg: #050505;
-            --surface: #121212;
-            --text: #e0e0e0;
-            --accent: #ccff00;
-            /* Neon Lime */
-            --accent-glow: rgba(204, 255, 0, 0.4);
-            --border: #333;
-            --font-main: 'Space Grotesk', sans-serif;
-            --font-display: 'Syne', sans-serif;
+      /* --- REUSED VARIABLES & BASE STYLES --- */
+      :root {
+        --bg: #050505;
+        --surface: #121212;
+        --text: #e0e0e0;
+        --accent: #ccff00;
+        /* Neon Lime */
+        --accent-glow: rgba(204, 255, 0, 0.4);
+        --border: #333;
+        --font-main: "Space Grotesk", sans-serif;
+        --font-display: "Syne", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        cursor: none;
+        /* Desktop cursor default */
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: var(--font-main);
+        overflow-x: hidden;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Hide default scrollbar globally */
+      html,
+      body {
+        scrollbar-width: none;
+        /* Firefox */
+        -ms-overflow-style: none;
+        /* IE/Edge */
+      }
+
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
+        /* Chrome/Safari/Blink */
+      }
+
+      /* --- SCROLL INDICATOR --- */
+      .scroll-progress-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        /* Faint track */
+        z-index: 10002;
+        /* Above cursor (10001) and modal (10000) */
+      }
+
+      .scroll-progress-bar {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        box-shadow: 0 0 10px var(--accent-glow);
+        transition: width 0.1s;
+      }
+
+      /* --- CUSTOM CURSOR (Desktop Only) --- */
+      .cursor {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        position: fixed;
+        pointer-events: none;
+        z-index: 10001;
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.2s,
+          height 0.2s,
+          background-color 0.2s;
+        mix-blend-mode: difference;
+        display: block;
+      }
+
+      .cursor.hovered {
+        width: 50px;
+        height: 50px;
+        background-color: var(--accent);
+        opacity: 0.8;
+      }
+
+      .bg-grid {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 50px 50px;
+        opacity: 0.1;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        position: relative;
+        z-index: 2;
+      }
+      .brand h1 {
+        font-family: var(--font-display);
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        text-transform: uppercase;
+        line-height: 0.9;
+        color: var(--accent);
+      }
+
+      /* --- RESPONSIVE --- */
+      @media (max-width: 768px) {
+        .cursor {
+          display: none !important;
         }
 
         * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            cursor: none;
-            /* Desktop cursor default */
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: var(--font-main);
-            overflow-x: hidden;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Hide default scrollbar globally */
-        html,
-        body {
-            scrollbar-width: none;
-            /* Firefox */
-            -ms-overflow-style: none;
-            /* IE/Edge */
-        }
-
-        html::-webkit-scrollbar,
-        body::-webkit-scrollbar {
-            display: none;
-            /* Chrome/Safari/Blink */
-        }
-
-        /* --- SCROLL INDICATOR --- */
-        .scroll-progress-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            /* Faint track */
-            z-index: 10002;
-            /* Above cursor (10001) and modal (10000) */
-        }
-
-        .scroll-progress-bar {
-            height: 100%;
-            background: var(--accent);
-            width: 0%;
-            box-shadow: 0 0 10px var(--accent-glow);
-            transition: width 0.1s;
-        }
-
-        /* --- CUSTOM CURSOR (Desktop Only) --- */
-        .cursor {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--accent);
-            border-radius: 50%;
-            position: fixed;
-            pointer-events: none;
-            z-index: 10001;
-            transform: translate(-50%, -50%);
-            transition: width 0.2s, height 0.2s, background-color 0.2s;
-            mix-blend-mode: difference;
-            display: block;
-        }
-
-        .cursor.hovered {
-            width: 50px;
-            height: 50px;
-            background-color: var(--accent);
-            opacity: 0.8;
-        }
-
-        .bg-grid {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(var(--border) 1px, transparent 1px),
-                linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.1;
-            z-index: 0;
-            pointer-events: none;
+          cursor: auto !important;
         }
 
         .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            position: relative;
-            z-index: 2;
+          padding: 1rem;
         }
-
-        /* --- RESPONSIVE --- */
-        @media (max-width: 768px) {
-            .cursor {
-                display: none !important;
-            }
-
-            * {
-                cursor: auto !important;
-            }
-
-            .container {
-                padding: 1rem;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="cursor"></div>
     <div class="bg-grid"></div>
 
     <!-- SCROLL INDICATOR -->
     <div class="scroll-progress-container">
-        <div class="scroll-progress-bar" id="scrollBar"></div>
+      <div class="scroll-progress-bar" id="scrollBar"></div>
     </div>
-    
+
     <div class="container">
-        <slot />
+      <slot />
     </div>
 
     <script>
-        // Custom Cursor Logic
-        if (window.matchMedia("(pointer: fine)").matches) {
-            const cursor = document.querySelector('.cursor') as HTMLElement;
-            // Only attach if cursor element exists
-            if (cursor) {
-                document.addEventListener('mousemove', (e) => {
-                    cursor.style.left = e.clientX + 'px';
-                    cursor.style.top = e.clientY + 'px';
-                });
+      // Custom Cursor Logic
+      if (window.matchMedia("(pointer: fine)").matches) {
+        const cursor = document.querySelector(".cursor") as HTMLElement;
+        // Only attach if cursor element exists
+        if (cursor) {
+          document.addEventListener("mousemove", (e) => {
+            cursor.style.left = e.clientX + "px";
+            cursor.style.top = e.clientY + "px";
+          });
 
-                // Add hover effect to interactive elements
-                const addHoverListeners = () => {
-                    const selector = 'a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control';
-                    document.querySelectorAll(selector).forEach(el => {
-                        // Avoid adding duplicate listeners
-                        if (el.getAttribute('data-cursor-attached') === 'true') return;
+          // Add hover effect to interactive elements
+          const addHoverListeners = () => {
+            const selector =
+              "a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control";
+            document.querySelectorAll(selector).forEach((el) => {
+              // Avoid adding duplicate listeners
+              if (el.getAttribute("data-cursor-attached") === "true") return;
 
-                        el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
-                        el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
-                        el.setAttribute('data-cursor-attached', 'true');
-                    });
-                };
+              el.addEventListener("mouseenter", () =>
+                cursor.classList.add("hovered"),
+              );
+              el.addEventListener("mouseleave", () =>
+                cursor.classList.remove("hovered"),
+              );
+              el.setAttribute("data-cursor-attached", "true");
+            });
+          };
 
-                addHoverListeners();
-                
-                // Use MutationObserver for better performance with React hydration than setInterval
-                const observer = new MutationObserver((mutations) => {
-                    addHoverListeners();
-                });
-                
-                observer.observe(document.body, { childList: true, subtree: true });
-            }
+          addHoverListeners();
+
+          // Use MutationObserver for better performance with React hydration than setInterval
+          const observer = new MutationObserver((mutations) => {
+            addHoverListeners();
+          });
+
+          observer.observe(document.body, { childList: true, subtree: true });
         }
+      }
 
-        // Scroll Progress Logic
-        window.addEventListener('scroll', () => {
-            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrolled = (winScroll / height) * 100;
-            const scrollBar = document.getElementById('scrollBar');
-            if(scrollBar) scrollBar.style.width = scrolled + '%';
-        });
+      // Scroll Progress Logic
+      window.addEventListener("scroll", () => {
+        const winScroll =
+          document.body.scrollTop || document.documentElement.scrollTop;
+        const height =
+          document.documentElement.scrollHeight -
+          document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        const scrollBar = document.getElementById("scrollBar");
+        if (scrollBar) scrollBar.style.width = scrolled + "%";
+      });
     </script>
-</body>
+  </body>
 </html>

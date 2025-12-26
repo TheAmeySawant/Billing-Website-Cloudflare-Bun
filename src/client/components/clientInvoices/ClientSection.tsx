@@ -41,7 +41,7 @@ export default function ClientSection({ totalInvoices, totalEarnings, clientData
                 <h3>{totalInvoices}</h3>
                 <div style={{ marginTop: '1rem' }}>
                     <h2>Total Earnings</h2>
-                    <h3>${totalEarnings}</h3>
+                    <h3>₹{totalEarnings}</h3>
                 </div>
             </div>
         </section>

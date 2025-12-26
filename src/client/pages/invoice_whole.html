@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>INVOICE #DW003 | dzynsbysoham</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --surface: #121212;
+            --text: #e0e0e0;
+            --accent: #ccff00;
+            /* Neon Lime */
+            --accent-glow: rgba(204, 255, 0, 0.4);
+            --border: #333;
+            --font-main: 'Space Grotesk', sans-serif;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: none;
+            /* Desktop cursor default */
+        }
+
+        html,
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari/Opera */
+        }
+
+        /* --- SCROLL PROGRESS --- */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 10000;
+            transition: width 0.1s;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* --- CUSTOM CURSOR (Desktop Only) --- */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10005;
+            /* Above Modal (10000) */
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+            display: block;
+        }
+
+        .cursor.hovered {
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent);
+            opacity: 0.8;
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .brand h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            /* Fluid font size */
+            text-transform: uppercase;
+            line-height: 0.9;
+            color: var(--accent);
+        }
+
+        .brand span {
+            display: block;
+            font-size: 1rem;
+            color: #fff;
+            letter-spacing: 2px;
+            margin-top: 0.5rem;
+        }
+
+        .invoice-meta {
+            text-align: right;
+        }
+
+        .invoice-meta .tag {
+            display: inline-block;
+            background: var(--accent);
+            color: #000;
+            padding: 0.2rem 0.8rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            transform: rotate(-2deg);
+            margin-bottom: 0.5rem;
+        }
+
+        /* --- CLIENT SECTION --- */
+        .client-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .client-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .info-block.right-align {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        .info-block h3 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            color: #fff;
+        }
+
+        .info-block p {
+            color: #aaa;
+            font-size: 1rem;
+        }
+
+        /* --- PROJECTS GRID --- */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border);
+            /* Full color always active */
+        }
+
+        .card-content {
+            padding: 1.2rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+            color: #fff;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px dashed #333;
+        }
+
+        .price-tag {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+            /* Cursor managed by global .cursor now */
+        }
+
+        /* Enforce NONE cursor on modal to let custom cursor show */
+        .modal,
+        .modal * {
+            cursor: none !important;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 4px;
+            outline: none;
+            font-family: var(--font-main);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+        }
+
+        /* Custom Select Styles */
+        .custom-select-wrapper {
+            position: relative;
+            user-select: none;
+        }
+
+        .custom-select-trigger {
+            position: relative;
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 4px;
+            cursor: none;
+            /* Custom cursor */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-select-trigger::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ccff00' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: transform 0.3s;
+        }
+
+        .custom-select.open .custom-select-trigger::after {
+            transform: rotate(180deg);
+        }
+
+        .custom-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            display: none;
+            padding: 0.8rem;
+            z-index: 10;
+            max-height: 200px;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
+        .custom-options::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari */
+        }
+
+        .custom-select.open .custom-options {
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .custom-option {
+            padding: 0.7rem;
+            color: #ccc;
+            cursor: none;
+            transition: all 0.2s;
+        }
+
+        .custom-option:hover,
+        .custom-option.selected {
+            background: rgba(204, 255, 0, 0.1);
+            color: var(--accent);
+        }
+
+        .file-upload-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 2rem;
+            background: var(--surface);
+            border: 1px dashed var(--accent);
+            color: #888;
+            cursor: none !important;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .file-upload-box:hover {
+            background: rgba(204, 255, 0, 0.05);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .file-upload-box.dragover {
+            background: rgba(204, 255, 0, 0.1);
+            border-style: solid;
+            transform: scale(1.02);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            cursor: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #555;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            border-color: #fff;
+        }
+
+        .btn-new-project {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            cursor: none;
+            margin-top: 1rem;
+            transition: all 0.3s;
+        }
+
+        .btn-new-project:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        /* --- SLIDER STYLES --- */
+        .card-image-container {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .card-image.active {
+            opacity: 1;
+        }
+
+        /* --- CARD ACTIONS --- */
+        .card-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            opacity: 1;
+            /* Always visible to resolve visibility issues */
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+
+        .card:hover .card-actions {
+            opacity: 1;
+        }
+
+        .btn-icon {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border: 1px solid var(--border);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: none;
+            /* Custom cursor only */
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* --- MODAL IMAGE MANAGER --- */
+        .image-manager {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1rem;
+            min-height: 10px;
+        }
+
+        .img-thumb-wrapper {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: grab;
+            background: #222;
+        }
+
+        .img-thumb-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .img-thumb-wrapper.dragging {
+            opacity: 0.5;
+            border-color: var(--accent);
+        }
+
+        .img-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+            /* Prevent img drag interfering */
+        }
+
+        .btn-img-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .btn-img-delete:hover {
+            background: red;
+        }
+
+        /* --- SUMMARY SECTION --- */
+        .summary-section {
+            background: var(--surface);
+            border: 2px solid var(--accent);
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+
+        .total-label {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .total-amount {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* --- PAYMENT SECTION --- */
+        .payment-section {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            margin-bottom: 4rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+        }
+
+        .qr-code-container {
+            background: #fff;
+            padding: 0.8rem;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .qr-code {
+            width: 120px;
+            height: 120px;
+            display: block;
+        }
+
+        .payment-info h3 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .btn-download {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 1rem 2rem;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            cursor: none;
+            /* Ensure pointer on desktop */
+        }
+
+        /* --- MARQUEE --- */
+        .marquee-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 0;
+            width: 100%;
+            height: 300px;
+            /* Increased height to prevent clipping */
+            overflow: visible;
+            z-index: 1;
+            /* Behind content */
+            pointer-events: none;
+            opacity: 0.6;
+            /* Significantly increased for visibility */
+            perspective: 500px;
+            display: flex;
+            align-items: center;
+        }
+
+        .marquee-text {
+            white-space: nowrap;
+            font-family: var(--font-display);
+            font-size: 8rem;
+            /* Larger text */
+            animation: marquee 20s linear infinite;
+            transform-style: preserve-3d;
+            transform: rotateX(10deg) rotateY(0deg) skewX(-10deg);
+            color: transparent;
+            -webkit-text-stroke: 2px rgba(255, 255, 255, 0.15);
+            /* Visible stroke */
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(10%) rotateX(20deg) skewX(-10deg);
+            }
+
+            100% {
+                transform: translateX(-100%) rotateX(20deg) skewX(-10deg);
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        /* =========================================
+           MOBILE RESPONSIVE OVERRIDES 
+           ========================================= */
+        @media (max-width: 768px) {
+
+            /* 1. Disable Custom Cursor for Touch */
+            .cursor {
+                display: none !important;
+            }
+
+            * {
+                cursor: auto !important;
+            }
+
+            /* 2. Layout Adjustments */
+            .container {
+                padding: 1.5rem;
+                width: 100%;
+                overflow-x: hidden;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+            }
+
+            .invoice-meta {
+                text-align: left;
+                width: 100%;
+                padding-top: 1rem;
+                border-top: 1px solid #222;
+            }
+
+            /* 3. Stack Client Section */
+            .client-section {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+                gap: 2rem;
+            }
+
+            .info-block.right-align {
+                text-align: left;
+                /* Reset alignment */
+                align-items: flex-start;
+            }
+
+            /* 4. Project Grid - Full Width Cards */
+            .projects-grid {
+                grid-template-columns: 1fr;
+                /* Force 1 column */
+                gap: 2rem;
+            }
+
+            /* 5. Summary Section */
+            .summary-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 1.5rem;
+            }
+
+            .total-amount {
+                font-size: 3rem;
+                /* Safe size for mobile */
+            }
+
+            /* 6. Payment Section */
+            .payment-section {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 1.5rem;
+            }
+
+            .btn-download {
+                width: 100%;
+                text-align: center;
+            }
+
+            /* 7. Marquee sizing */
+            .marquee-text {
+                font-size: 3rem;
+            }
+
+            /* 8. Custom Select */
+            .custom-options {
+                padding: 0.6rem;
+            }
+
+            .custom-option {
+                padding: 0.6rem;
+            }
+
+            .custom-select.open .custom-options {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scroll-progress" id="scrollProgress"></div>
+    <div class="cursor"></div>
+    <div class="bg-grid"></div>
+
+    <div class="marquee-container">
+        <div class="marquee-text">dzynsbysoham I dzynsbysoham I</div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>dzynsby<br>soham</h1>
+                <span>CREATIVE SERVICES</span>
+            </div>
+            <div class="invoice-meta">
+                <div class="tag">#DW003</div>
+                <p>November | 2025</p>
+                <p>Status: <span style="color:var(--accent)">PENDING</span></p>
+                <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+                    <button class="btn-new-project" style="margin-top:0;" id="btnShare">Share</button>
+                    <button class="btn-new-project" style="margin-top:0;" id="btnOpenModal">+ New Project</button>
+                </div>
+            </div>
+        </header>
+
+        <section class="client-section">
+            <div class="info-block">
+                <h2>Billed To</h2>
+                <h3>Dark Winter</h3>
+                <p>Music Production and Bundle</p>
+            </div>
+            <div class="info-block right-align">
+                <h2>Project Scope</h2>
+                <h3 id="projectScopeText">Loading...</h3>
+                <p>November 2025 Cycle</p>
+            </div>
+        </section>
+
+        <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: #fff;">Work Delivered</h2>
+        <div class="projects-grid" id="projectsGrid">
+            <!-- Projects injected by JS -->
+        </div>
+
+        <div class="summary-section">
+            <div class="summary-text">
+                <div class="total-label">Total Due</div>
+                <div style="color: #888; font-size: 1.1rem; margin-top: 0.5rem;">1 Items @ ₹400</div>
+            </div>
+            <div class="total-amount">₹400</div>
+        </div>
+
+        <div class="payment-section">
+            <div class="qr-code-container">
+                <img src="https://imgs.search.brave.com/OUwkboAP78bCoNgZG5s_PkPdBDUS-FYnHcZJ7v5GECo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/am90Zm9ybS5jb20v/YmxvZy93cC1jb250/ZW50L3VwbG9hZHMv/MjAyNC8wNy9xci1j/b2RlLTI0MjEwMTgy/MDQwMzk0My5wbmc" alt="UPI QR" class="qr-code">
+            </div>
+            <div class="payment-info">
+                <h3>Scan to Pay</h3>
+                <p style="color:#aaa;">Use any UPI app to complete payment.</p>
+                <button class="btn-download" onclick="window.print()">Download Invoice</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 dzynsbysoham. Thank you for business.</p>
+        </footer>
+    </div>
+
+    <!-- NEW PROJECT MODAL -->
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal">
+            <h2>Add New Project</h2>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" class="form-control" id="pName" required placeholder="e.g. Winter Sale Banner">
+                </div>
+
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="custom-select-wrapper" id="typeSelectWrapper">
+                        <div class="custom-select">
+                            <div class="custom-select-trigger" id="pTypeTrigger">Banner Design</div>
+                            <div class="custom-options">
+                                <span class="custom-option selected" data-value="Banner Design">Banner Design</span>
+                                <span class="custom-option" data-value="Thumbnail">Thumbnail</span>
+                                <span class="custom-option" data-value="Poster">Poster</span>
+                                <span class="custom-option" data-value="Other">Other</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Hidden input to store value -->
+                    <input type="hidden" id="pType" value="Banner Design">
+                </div>
+
+                <div class="form-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" class="form-control" id="pAmount" required placeholder="400">
+                </div>
+
+                <div class="form-group">
+                    <label>Images</label>
+                    <!-- Image Manager Container -->
+                    <div class="image-manager" id="modalImageManager"></div>
+
+                    <input type="file" id="pImages" multiple accept="image/*" hidden>
+                    <label for="pImages" class="file-upload-box" id="fileUploadLabel">
+                        <span>+ Add / Drag Images Here</span>
+                    </label>
+                </div>
+
+                <input type="hidden" id="editIndex" value="-1">
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCloseModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="border-color: #ff4444;">
+            <h2 style="color: #ff4444;">Confirm Delete</h2>
+            <p style="color: #ccc; margin-bottom: 2rem; font-size: 1.1rem;">Are you sure you want to delete this
+                project? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btnCancelDelete">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmDelete"
+                    style="background: #ff4444; color: #fff; box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);">Delete</button>
+            </div>
+        </div>
+
+        <script>
+            // --- DATA STATE ---
+            // Stack behavior: new items at index 0
+            const projects = [
+                {
+                    id: 1,
+                    name: "Bundle Stack",
+                    type: "Banner Design",
+                    amount: 400,
+                    images: ["https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=2070&auto=format&fit=crop&w=500&q=80"]
+                },
+                {
+                    id: 2,
+                    name: "Neon Vibes",
+                    type: "Thumbnail",
+                    amount: 350,
+                    images: ["https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=500&q=80", "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=500&q=80", "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop&w=500&q=80"]
+                },
+                {
+                    id: 3,
+                    name: "Retro Future",
+                    type: "Poster",
+                    amount: 500,
+                    images: ["https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2020&auto=format&fit=crop&w=500&q=80"]
+                }
+            ];
+
+            // --- DOM ELEMENT REFERENCS ---
+            const projectsGrid = document.getElementById('projectsGrid');
+            const scrollProgress = document.getElementById('scrollProgress');
+            const modal = document.getElementById('projectModal');
+            const btnOpenModal = document.getElementById('btnOpenModal');
+            const btnCloseModal = document.getElementById('btnCloseModal');
+            const projectForm = document.getElementById('projectForm');
+            const totalAmountEl = document.querySelector('.total-amount');
+            const totalLabelEl = document.querySelector('.summary-text div:nth-child(2)'); // "1 Items @ ..."
+            const projectScopeText = document.getElementById('projectScopeText');
+            const fileUploadLabel = document.getElementById('fileUploadLabel');
+
+            // Delete Modal DOM
+            const deleteModal = document.getElementById('deleteModal');
+            const btnCancelDelete = document.getElementById('btnCancelDelete');
+            const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+            // --- STATE FOR MODAL ---
+            let tempImages = [];
+            let projectToDeleteIndex = -1;
+
+            // --- SCOPE UPDATE LOGIC ---
+            function updateProjectScope() {
+                const counts = {};
+                projects.forEach(p => {
+                    const type = p.type.split(' ')[0]; // "Banner Design" -> "Banner"
+                    counts[type] = (counts[type] || 0) + 1;
+                });
+
+                const scopeString = Object.entries(counts)
+                    .map(([type, count]) => `${count} ${type}`)
+                    .join(' & ');
+
+                projectScopeText.textContent = scopeString || "No Projects";
+            }
+
+            // --- RENDER LOGIC ---
+            function renderProjects() {
+                projectsGrid.innerHTML = '';
+                let total = 0;
+
+                projects.forEach((p, index) => {
+                    total += Number(p.amount);
+
+                    // Create Image HTML
+                    let imagesHtml = '';
+                    if (p.images.length > 0) {
+                        imagesHtml = p.images.map((src, i) =>
+                            `<img src="${src}" class="card-image ${i === 0 ? 'active' : ''}" data-project="${index}">`
+                        ).join('');
+                    } else {
+                        imagesHtml = '<div style="width:100%;height:160px;background:#222;"></div>';
+                    }
+
+                    const card = document.createElement('article');
+                    card.className = 'card';
+                    card.innerHTML = `
+                    <div class="card-image-container">
+                        ${imagesHtml}
+                        <div class="card-actions">
+                             <button class="btn-icon" onclick="openEditModal(${index})" title="Edit">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                             </button>
+                             <button class="btn-icon" onclick="deleteProject(${index})" title="Delete">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                             </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-title">${p.name}</div>
+                        <div class="card-meta">
+                            <span>${p.type}</span>
+                            <span class="price-tag">₹${p.amount}</span>
+                        </div>
+                    </div>
+                `;
+                    projectsGrid.appendChild(card);
+                });
+
+                // Update Summary
+                totalAmountEl.textContent = `₹${total}`;
+                totalLabelEl.textContent = `${projects.length} Items`;
+
+                // Update Scope Text
+                updateProjectScope();
+
+                // Re-initialize Anims for new items
+                observeElements();
+            }
+
+            // --- CRUD ACTIONS ---
+            window.deleteProject = function (index) {
+                projectToDeleteIndex = index;
+                deleteModal.classList.add('active');
+            };
+
+            window.confirmDelete = function () {
+                if (projectToDeleteIndex >= 0) {
+                    projects.splice(projectToDeleteIndex, 1);
+                    renderProjects();
+
+                    // Close Modal
+                    deleteModal.classList.remove('active');
+                    projectToDeleteIndex = -1;
+                }
+            };
+
+            window.closeDeleteModal = function () {
+                deleteModal.classList.remove('active');
+                projectToDeleteIndex = -1;
+            };
+
+            window.openEditModal = function (index) {
+                const p = projects[index];
+                const editIndexInput = document.getElementById('editIndex');
+                const modalTitle = document.querySelector('#projectModal h2');
+                const submitBtn = document.querySelector('#projectModal button[type="submit"]');
+
+                // Set Form Values
+                document.getElementById('pName').value = p.name;
+                document.getElementById('pAmount').value = p.amount;
+
+                // Set Custom Type Select
+                const typeTrigger = document.querySelector('.custom-select-trigger');
+                const typeInput = document.getElementById('pType');
+                const typeOptions = document.querySelectorAll('.custom-option');
+
+                typeTrigger.textContent = p.type;
+                typeInput.value = p.type;
+
+                typeOptions.forEach(opt => {
+                    if (opt.getAttribute('data-value') === p.type) opt.classList.add('selected');
+                    else opt.classList.remove('selected');
+                });
+
+                // Load Images
+                tempImages = [...p.images]; // Clone array
+                renderModalImages();
+
+                // Set Mode
+                editIndexInput.value = index;
+                modalTitle.textContent = "Edit Project";
+                submitBtn.textContent = "Save Changes";
+
+                modal.classList.add('active');
+            };
+
+            // --- CUSTOM DROPDOWN LOGIC ---
+            const typeWrapper = document.querySelector('.custom-select-wrapper');
+            const typeSelect = typeWrapper.querySelector('.custom-select');
+            const typeTrigger = typeWrapper.querySelector('.custom-select-trigger');
+            const typeOptions = typeWrapper.querySelectorAll('.custom-option');
+            const typeInput = document.getElementById('pType');
+
+            typeTrigger.addEventListener('click', (e) => {
+                typeSelect.classList.toggle('open');
+                e.stopPropagation();
+            });
+
+            typeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    typeSelect.classList.remove('open');
+                    typeOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    typeTrigger.textContent = option.textContent;
+                    typeInput.value = option.getAttribute('data-value');
+                });
+            });
+
+            // Close dropdown on outside click
+            window.addEventListener('click', (e) => {
+                if (!typeSelect.contains(e.target)) {
+                    typeSelect.classList.remove('open');
+                }
+            });
+
+            // --- FILE UPLOAD UI LOGIC (CLICK + DRAG & DROP) ---
+            const fileInput = document.getElementById('pImages');
+            const fileBox = document.getElementById('fileUploadLabel');
+
+            // Handle Change (Click Upload)
+            fileInput.addEventListener('change', handleFiles);
+
+            // Handle Drag & Drop
+            fileBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileBox.classList.add('dragover');
+            });
+
+            fileBox.addEventListener('dragleave', (e) => {
+                fileBox.classList.remove('dragover');
+            });
+
+            fileBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileBox.classList.remove('dragover');
+
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files; // Assign to input
+                    handleFiles({ target: fileInput }); // Trigger handler
+                }
+            });
+
+            function handleFiles(e) {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (readerEvent) => {
+                        tempImages.push(readerEvent.target.result);
+                        renderModalImages();
+                    };
+                    reader.readAsDataURL(file);
+                });
+                fileInput.value = '';
+            }
+
+            // Render Thumbnails
+            function renderModalImages() {
+                modalImageManager.innerHTML = '';
+
+                tempImages.forEach((src, idx) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'img-thumb-wrapper';
+                    wrapper.draggable = true;
+                    wrapper.dataset.index = idx;
+
+                    wrapper.innerHTML = `
+                    <img src="${src}" class="img-thumb">
+                    <button type="button" class="btn-img-delete" onclick="removeImage(${idx})">×</button>
+                `;
+
+                    // Drag Events for Reordering
+                    wrapper.addEventListener('dragstart', dragStart);
+                    wrapper.addEventListener('dragover', dragOver);
+                    wrapper.addEventListener('drop', dropImage);
+                    wrapper.addEventListener('dragend', dragEnd);
+
+                    modalImageManager.appendChild(wrapper);
+                });
+
+                // Update Label Text based on count
+                if (tempImages.length > 0) {
+                    fileUploadLabel.querySelector('span').textContent = `+ Add More Images (${tempImages.length} present)`;
+                } else {
+                    fileUploadLabel.querySelector('span').textContent = `+ Add / Drag Images Here`;
+                }
+            }
+
+            window.removeImage = function (idx) {
+                tempImages.splice(idx, 1);
+                renderModalImages();
+            };
+
+            // --- DRAG & DROP REORDERING ---
+            let dragSrcEl = null;
+
+            function dragStart(e) {
+                dragSrcEl = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+                this.classList.add('dragging');
+            }
+
+            function dragOver(e) {
+                if (e.preventDefault) e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+
+            function dropImage(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                if (dragSrcEl !== this) {
+                    const srcIdx = Number(dragSrcEl.dataset.index);
+                    const targetIdx = Number(this.dataset.index);
+                    const item = tempImages[srcIdx];
+                    tempImages.splice(srcIdx, 1);
+                    tempImages.splice(targetIdx, 0, item);
+                    renderModalImages();
+                }
+                return false;
+            }
+
+            function dragEnd() {
+                this.classList.remove('dragging');
+            }
+
+            // --- SHARE BUTTON LOGIC ---
+            document.getElementById('btnShare').addEventListener('click', () => {
+                const btn = document.getElementById('btnShare');
+                const originalText = btn.textContent;
+
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    btn.textContent = "Copied!";
+                    btn.style.background = "var(--accent)";
+                    btn.style.color = "#000";
+
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = "";
+                        btn.style.color = "";
+                    }, 2000);
+                });
+            });
+
+            // --- IMAGE SLIDER LOGIC ---
+            setInterval(() => {
+                const containers = document.querySelectorAll('.card-image-container');
+                containers.forEach(container => {
+                    const images = container.querySelectorAll('.card-image');
+                    if (images.length > 1) {
+                        // Find current active
+                        let activeIdx = -1;
+                        images.forEach((img, i) => {
+                            if (img.classList.contains('active')) activeIdx = i;
+                            img.classList.remove('active');
+                        });
+
+                        // Next index
+                        let nextIdx = (activeIdx + 1) % images.length;
+                        images[nextIdx].classList.add('active');
+                    }
+                });
+            }, 2000);
+
+            // --- MODAL HANDLERS ---
+            btnOpenModal.addEventListener('click', () => {
+                // Default: ADD MODE
+                projectForm.reset();
+                tempImages = [];
+                renderModalImages();
+
+                const editIndexInput = document.getElementById('editIndex');
+                const modalTitle = document.querySelector('#projectModal h2');
+                const submitBtn = document.querySelector('#projectModal button[type="submit"]');
+
+                editIndexInput.value = "-1";
+                modalTitle.textContent = "Add New Project";
+                submitBtn.textContent = "Add Project";
+
+                // Reset custom select visually
+                document.querySelector('.custom-select-trigger').textContent = "Banner Design";
+                document.getElementById('pType').value = "Banner Design";
+                document.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+                document.querySelector('.custom-option[data-value="Banner Design"]').classList.add('selected');
+
+                modal.classList.add('active');
+            });
+
+            btnCloseModal.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            // Close on outside click (Main Modal)
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
+
+            // --- DELETE MODAL HANDLERS ---
+            btnCancelDelete.addEventListener('click', closeDeleteModal);
+            btnConfirmDelete.addEventListener('click', confirmDelete);
+
+            // Close on outside click (Delete Modal)
+            deleteModal.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeDeleteModal();
+            });
+
+
+            // Handle Form Submit
+            projectForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('pName').value;
+                const type = document.getElementById('pType').value;
+                const amount = document.getElementById('pAmount').value;
+                const editIndexInput = document.getElementById('editIndex');
+
+                const editIdx = Number(editIndexInput.value);
+
+                if (editIdx >= 0) {
+                    // UPDATE
+                    projects[editIdx] = {
+                        ...projects[editIdx],
+                        name,
+                        type,
+                        amount,
+                        images: [...tempImages]
+                    };
+                } else {
+                    // CREATE
+                    const newProject = {
+                        id: Date.now(),
+                        name,
+                        type,
+                        amount,
+                        images: [...tempImages]
+                    };
+                    projects.unshift(newProject);
+                }
+
+                renderProjects();
+                projectForm.reset();
+                modal.classList.remove('active');
+            });
+
+            // --- SCROLL INDICATOR ---
+            window.addEventListener('scroll', () => {
+                const scrollTop = window.scrollY;
+                const docHeight = document.body.offsetHeight - window.innerHeight;
+                const scrollPercent = (scrollTop / docHeight) * 100;
+                scrollProgress.style.width = scrollPercent + '%';
+            });
+
+            // --- EXISTING: CUSTOM CURSOR ---
+            if (window.matchMedia("(pointer: fine)").matches) {
+                const cursor = document.querySelector('.cursor');
+                document.addEventListener('mousemove', (e) => {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                });
+                // Delegate hover for dynamic items
+                document.body.addEventListener('mouseover', (e) => {
+                    if (e.target.closest('a, button, .card, .form-control, .file-upload-box, .custom-select-trigger, .custom-option')) {
+                        cursor.classList.add('hovered');
+                    } else {
+                        cursor.classList.remove('hovered');
+                    }
+                });
+            }
+
+            // --- EXISTING: SCROLL REVEAL (Refactored for Dynamic) ---
+            function observeElements() {
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: "0px 0px -50px 0px"
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.style.opacity = 1;
+                            entry.target.style.transform = 'translateY(0)';
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.card, .summary-section, .payment-section, .client-section').forEach((el, index) => {
+                    // Only observe if not already revealed
+                    if (el.style.opacity !== '1') {
+                        el.style.opacity = 0;
+                        el.style.transform = 'translateY(20px)';
+                        el.style.transition = `all 0.6s ease-out ${index * 0.05}s`;
+                        observer.observe(el);
+                    }
+                });
+            }
+
+            // Init
+            renderProjects();
+        </script>
+</body>
+
+</html>

@@ -119,6 +119,17 @@ export default function InvoiceManager() {
                 </div>
             </header>
 
+            {/* <header className="dashboard-header">
+                <div className="brand">
+                    <h1 className="brand-title">
+                        dzynsby<br />soham
+                    </h1>
+                    <span className="brand-subtitle">
+                        ADMIN PANEL
+                    </span>
+                </div>
+            </header> */}
+
             <ClientSection
                 totalInvoices={totalInvoices}
                 totalEarnings={totalEarnings}
@@ -143,12 +154,12 @@ export default function InvoiceManager() {
 
             <div className="invoice-grid">
                 {sortedInvoices.map(invoice => (
-                    <div key={invoice.id} className="invoice-card">
+                    <a key={invoice.id} className="invoice-card" style={{textDecoration: 'none'}} href='/invoice_whole'>
                         <div>
                             <div className="card-date">{invoice.month}</div>
                             <div className="card-year">{invoice.year}</div>
                             <div style={{ color: 'var(--accent)', marginTop: '0.5rem', fontWeight: 'bold' }}>
-                                ${invoice.totalAmount || 0}
+                                ₹{invoice.totalAmount || 0}
                             </div>
                         </div>
                         <div className="card-footer">
@@ -157,7 +168,7 @@ export default function InvoiceManager() {
                             </span>
                             <button className="btn-delete" onClick={() => confirmDelete(invoice.id)}>Delete</button>
                         </div>
-                    </div>
+                    </a>
                 ))}
             </div>
 
