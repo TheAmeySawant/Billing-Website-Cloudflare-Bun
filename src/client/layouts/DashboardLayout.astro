@@ -180,13 +180,16 @@
             cursor.style.top = e.clientY + "px";
           });
 
+           // Use WeakSet to track elements without modifying the DOM
+          const listenersAttached = new WeakSet();
+
           // Add hover effect to interactive elements
           const addHoverListeners = () => {
             const selector =
-              "a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control";
+              "a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control, .qr-code-container, .upload-btn-label";
             document.querySelectorAll(selector).forEach((el) => {
               // Avoid adding duplicate listeners
-              if (el.getAttribute("data-cursor-attached") === "true") return;
+              if (listenersAttached.has(el)) return;
 
               el.addEventListener("mouseenter", () =>
                 cursor.classList.add("hovered"),
@@ -194,7 +197,7 @@
               el.addEventListener("mouseleave", () =>
                 cursor.classList.remove("hovered"),
               );
-              el.setAttribute("data-cursor-attached", "true");
+              listenersAttached.add(el);
             });
           };
 

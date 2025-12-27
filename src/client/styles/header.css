@@ -1,0 +1,91 @@
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+
+/* .brand-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    text-transform: uppercase;
+    line-height: 0.9;
+    color: var(--accent);
+    margin: 0;
+}
+
+.brand-subtitle {
+    display: block;
+    font-size: 0.9rem;
+    color: #fff;
+    letter-spacing: 2px;
+    margin-top: 0.5rem;
+} */
+
+.brand-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    text-transform: uppercase;
+    line-height: 0.9;
+    color: var(--accent);
+}
+
+.brand-subtitle {
+    display: block;
+    font-size: 1rem;
+    color: #fff;
+    letter-spacing: 2px;
+    margin-top: 0.5rem;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.qr-code-container {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    border: 1px solid var(--accent);
+    padding: 2px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.qr-code {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.upload-btn-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+
+.upload-btn-label:hover {
+    background: var(--accent);
+    color: #000;
+}
