@@ -130,6 +130,33 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
                     background: #fff;
                     border-color: #fff;
                 }
+                .client-code{
+                    display: flex;
+                    width: 100%;
+                    padding: 1rem;
+                    background: var(--surface);
+                    border: 1px solid var(--border);
+                    color: #fff;
+                    font-family: var(--font-main);
+                    outline: none;
+                }
+                
+                .client-code input{
+                    width: 100%;
+                    padding: 0px;
+                    background: var(--surface);
+                    border: none;
+                    color: #fff;
+                    font-family: var(--font-main);
+                    outline: none;
+                }
+                .client-code div{
+                    display: flex;
+                    align-items: center;
+                    color: var(--accent);
+                    font-family: var(--font-main);
+                    font-weight: 400;
+                }
             `}</style>
             <div className="modal-content">
                 <h3 className="modal-header">Add New Client</h3>
@@ -141,10 +168,10 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
 
                 <div className="form-group">
                     <label>Client Code</label>
-                    <input type="text" placeholder="e.g. #AC001" />
+                    <div className='client-code'><div>#</div> <input type="text" placeholder="e.g. #AC001" /></div>
                 </div>
 
-                <div className="form-group">
+                {/* <div className="form-group">
                     <label>Client Image</label>
                     <input type="file" id="clientImage" accept="image/*" hidden onChange={handleFileChange} />
                     <label htmlFor="clientImage" className="file-upload-box">
@@ -152,7 +179,7 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
                             {fileName}
                         </span>
                     </label>
-                </div>
+                </div> */}
 
                 <div className="form-group">
                     <label>Description (Optional)</label>
