@@ -3,10 +3,14 @@ import { useState } from 'react';
 interface NewClientModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
 }
 
-export default function NewClientModal({ isOpen, onClose }: NewClientModalProps) {
-    const [fileName, setFileName] = useState("Click to Upload Image");
+export default function NewClientModal({ isOpen, onClose, onSuccess }: NewClientModalProps) {
+    const [name, setName] = useState("");
+    const [code, setCode] = useState("");
+    const [description, setDescription] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
 
@@ -16,11 +20,43 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setFileName(e.target.files[0].name);
-        } else {
-            setFileName("Click to Upload Image");
+    const handleSubmit = async () => {
+        if (!name.trim()) {
+            alert("Name is required");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/new/client', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    code,
+                    description
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Reset form and close
+                setName("");
+                setCode("");
+                setDescription("");
+                if (onSuccess) onSuccess();
+                onClose();
+            } else {
+                alert(data.error || "Failed to create client");
+            }
+        } catch (error) {
+            console.error("Error creating client:", error);
+            alert("An error occurred while creating the client");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -81,24 +117,6 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
                 input[type="text"]:focus, textarea:focus {
                     border-color: var(--accent);
                 }
-                .file-upload-box {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    width: 100%;
-                    padding: 2rem;
-                    background: var(--surface);
-                    border: 1px dashed var(--accent);
-                    color: #888;
-                    cursor: none;
-                    transition: all 0.3s;
-                    text-align: center;
-                }
-                .file-upload-box:hover {
-                    background: rgba(204, 255, 0, 0.05);
-                    color: #fff;
-                    border-style: solid;
-                }
                 .modal-actions {
                     display: flex;
                     justify-content: flex-end;
@@ -157,38 +175,54 @@ export default function NewClientModal({ isOpen, onClose }: NewClientModalProps)
                     font-family: var(--font-main);
                     font-weight: 400;
                 }
+                button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
             `}</style>
             <div className="modal-content">
                 <h3 className="modal-header">Add New Client</h3>
 
                 <div className="form-group">
                     <label>Client Name</label>
-                    <input type="text" placeholder="e.g. Acme Corp" />
+                    <input
+                        name='name'
+                        type="text"
+                        placeholder="e.g. Acme Corp"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
                 </div>
 
                 <div className="form-group">
                     <label>Client Code</label>
-                    <div className='client-code'><div>#</div> <input type="text" placeholder="e.g. #AC001" /></div>
+                    <div className='client-code'>
+                        <div className='hash'>#</div>
+                        <input
+                            name='code'
+                            type="text"
+                            placeholder="e.g. AC001"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                        />
+                    </div>
                 </div>
-
-                {/* <div className="form-group">
-                    <label>Client Image</label>
-                    <input type="file" id="clientImage" accept="image/*" hidden onChange={handleFileChange} />
-                    <label htmlFor="clientImage" className="file-upload-box">
-                        <span style={{ color: fileName !== "Click to Upload Image" ? 'var(--accent)' : 'inherit' }}>
-                            {fileName}
-                        </span>
-                    </label>
-                </div> */}
 
                 <div className="form-group">
                     <label>Description (Optional)</label>
-                    <textarea placeholder="Brief details about the client..."></textarea>
+                    <textarea
+                        name='description'
+                        placeholder="Brief details about the client..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    ></textarea>
                 </div>
 
                 <div className="modal-actions">
-                    <button onClick={onClose}>Cancel</button>
-                    <button className="btn-primary" onClick={onClose}>Save Client</button>
+                    <button onClick={onClose} disabled={isLoading}>Cancel</button>
+                    <button className="btn-primary" onClick={handleSubmit} disabled={isLoading}>
+                        {isLoading ? "Saving..." : "Save Client"}
+                    </button>
                 </div>
             </div>
         </div>

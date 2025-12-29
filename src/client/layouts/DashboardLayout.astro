@@ -186,7 +186,7 @@
           // Add hover effect to interactive elements
           const addHoverListeners = () => {
             const selector =
-              "a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control, .qr-code-container, .upload-btn-label";
+              "a, button, .card, .invoice-card, input, textarea, .file-upload-box, select, .form-control, .qr-code-container, .upload-btn-label, .client-code, .hash";
             document.querySelectorAll(selector).forEach((el) => {
               // Avoid adding duplicate listeners
               if (listenersAttached.has(el)) return;

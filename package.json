@@ -17,8 +17,8 @@
     "deploy:staging": "bun run build:client && wrangler deploy --env staging",
     "deploy:prod": "bun run build:client && wrangler deploy --env production",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply dojo_local_db --local",
-    "db:migrate:staging": "wrangler d1 migrations apply dojo_staging_db --remote --env staging",
+    "db:migrate:local": "wrangler d1 migrations apply billingLocalDB --local",
+    "db:migrate:staging": "wrangler d1 migrations apply billingDB --remote --env staging",
     "create:test:db": "bun run ./scripts/create-test-db.ts",
     "destroy:test:db": "bun run ./scripts/destroy-test-db.ts",
     "test": "bun run create:test:db && bun test && bun run destroy:test:db"

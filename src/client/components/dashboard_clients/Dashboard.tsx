@@ -1,35 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Controls from './Controls';
 import ClientGrid from './ClientGrid';
 import NewClientModal from './NewClientModal';
 
-const INITIAL_CLIENTS = [
-    {
-        id: 1,
-        title: "Dark Winter",
-        description: "Music Production and Bundle design for the winter season cycle.",
-        code: "#DW003",
-        image: "https://placehold.co/400x300/333333/ccff00?text=Dark+Winter"
-    },
-    {
-        id: 2,
-        title: "Neon Tech Systems",
-        description: "Full branding identity and website overhaul for tech startup.",
-        code: "#NT092",
-        image: "https://placehold.co/400x300/333333/ccff00?text=Neon+Tech"
-    },
-    {
-        id: 3,
-        title: "Vortex Gaming",
-        description: "Esports tournament assets and social media headers.",
-        code: "#VX118",
-        image: "https://placehold.co/400x300/333333/ccff00?text=Vortex"
-    }
-];
-
 export default function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [clients, setClients] = useState(INITIAL_CLIENTS);
+    const [clients, setClients] = useState<any[]>([]);
+
+    const fetchClients = async () => {
+        try {
+            const response = await fetch('/api/clients');
+            if (response.ok) {
+                const responseData = await response.json();
+                // Map the API data to the UI structure
+                // The API returns { success: true, data: [...] }
+                const mappedClients = (responseData.data || []).map((client: any) => ({
+                    id: client.id,
+                    title: client.name,
+                    description: client.description || "",
+                    code: client.code || "",
+                    // Generate placeholder image based on title
+                    image: `https://placehold.co/400x300/333333/ccff00?text=${encodeURIComponent(client.name)}`
+                }));
+                setClients(mappedClients);
+            } else {
+                console.error("Failed to fetch clients");
+            }
+        } catch (error) {
+            console.error("Error fetching clients:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchClients();
+    }, []);
 
     const handleSearch = (query: string) => {
         // Implement search logic if needed, or just console log
@@ -48,6 +52,7 @@ export default function Dashboard() {
             <NewClientModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchClients}
             />
         </>
     );
