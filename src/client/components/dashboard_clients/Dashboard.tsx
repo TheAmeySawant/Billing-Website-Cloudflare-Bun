@@ -6,6 +6,7 @@ import NewClientModal from './NewClientModal';
 export default function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchClients = async () => {
         try {
@@ -36,9 +37,25 @@ export default function Dashboard() {
     }, []);
 
     const handleSearch = (query: string) => {
-        // Implement search logic if needed, or just console log
-        console.log("Searching for:", query);
+        setSearchQuery(query);
     };
+
+    const filteredClients = clients
+        .map(client => {
+            const query = searchQuery.toLowerCase();
+            const titleMatch = client.title.toLowerCase().includes(query);
+            const codeMatch = client.code.toLowerCase().includes(query);
+            const descMatch = client.description.toLowerCase().includes(query);
+
+            let priority = Infinity;
+            if (titleMatch) priority = 1;
+            else if (codeMatch) priority = 2;
+            else if (descMatch) priority = 3;
+
+            return { ...client, priority };
+        })
+        .filter(client => client.priority !== Infinity)
+        .sort((a, b) => a.priority - b.priority);
 
     return (
         <>
@@ -47,7 +64,7 @@ export default function Dashboard() {
                 onNewClient={() => setIsModalOpen(true)}
             />
 
-            <ClientGrid clients={clients} />
+            <ClientGrid clients={filteredClients} />
 
             <NewClientModal
                 isOpen={isModalOpen}

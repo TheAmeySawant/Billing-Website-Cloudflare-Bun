@@ -1,10 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Payment: React.FC = () => {
+    const [qrCode, setQrCode] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchQrCode = async () => {
+            try {
+                const response = await fetch('/api/qrcode');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    setQrCode(URL.createObjectURL(blob));
+                }
+            } catch (error) {
+                console.error("Error fetching QR code:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchQrCode();
+    }, []);
+
     return (
         <div className="payment-section">
+            <style>{`
+                .qr-loading {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    background: var(--surface);
+                }
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(255,255,255,0.1);
+                    border-radius: 50%;
+                    border-top-color: var(--accent);
+                    animation: spin 1s ease-in-out infinite;
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
             <div className="qr-code-container">
-                <img src="https://imgs.search.brave.com/KBxaYr5s34bI0YBjvqi4S-GWA-TzTOk-63xjWqY6U-g/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTM0/NzI3NzU2Ny92ZWN0/b3IvcXItY29kZS1z/YW1wbGUtZm9yLXNt/YXJ0cGhvbmUtc2Nh/bm5pbmctb24td2hp/dGUtYmFja2dyb3Vu/ZC5qcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9UFloV0haN2JN/RUNHWjFmWnppXy1p/czBycDRaUTdhYnhi/ZEhfZm04U1A3UT0" alt="UPI QR" className="qr-code" />
+                {isLoading ? (
+                    <div className="qr-loading">
+                        <div className="spinner"></div>
+                    </div>
+                ) : (
+                    <img
+                        src={qrCode || "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=dzynsbysoham@upi"}
+                        alt="UPI QR"
+                        className="qr-code"
+                    />
+                )}
             </div>
             <div className="payment-info">
                 <h3>Scan to Pay</h3>

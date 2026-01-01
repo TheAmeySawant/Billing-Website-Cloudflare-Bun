@@ -76,7 +76,6 @@ export default function Controls({ onSearch, onNewClient }: ControlsProps) {
                     placeholder="Search clients..."
                     onChange={(e) => onSearch(e.target.value)}
                 />
-                <button>Search</button>
             </div>
             <button className="btn-primary" onClick={onNewClient}>+ New Client</button>
         </section>

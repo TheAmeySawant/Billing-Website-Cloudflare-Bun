@@ -1,6 +1,9 @@
 {
   "name": "billing-website-cloudflare-bun",
   "compatibility_date": "2025-12-13",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "main": "src/server/index.ts",
   "assets": {
     "directory": "./dist",
@@ -19,7 +22,11 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "CF_ACCESS_DOMAIN": "https://amey01962.cloudflareaccess.com",
-        "POLICY_AUD": "801d371005d81abd7cb2a9e61acb2c2184eb83251d23298180a31eb2eff1575f"
+        "POLICY_AUD": "801d371005d81abd7cb2a9e61acb2c2184eb83251d23298180a31eb2eff1575f",
+        "B2_ENDPOINT": "https://s3.eu-central-003.backblazeb2.com",
+        "B2_ACCESS_KEY_ID": "0035421bef7b2fc0000000002",
+        "B2_SECRET_ACCESS_KEY": "K003QsFvBM4RMLeG0BLRVLq43Qs8UYc",
+        "B2_BUCKET_NAME": "InvoiceBilling"
       },
       "d1_databases": [
         {

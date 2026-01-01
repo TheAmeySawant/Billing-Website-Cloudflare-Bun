@@ -1,9 +1,15 @@
 import { Hono } from "hono";
 import { accessAuth } from "./middleware/auth";
 import { D1Database } from "@cloudflare/workers-types";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { Buffer } from "node:buffer";
 
 type Bindings = {
   billingDB: D1Database;
+  B2_ENDPOINT: string;
+  B2_ACCESS_KEY_ID: string;
+  B2_SECRET_ACCESS_KEY: string;
+  B2_BUCKET_NAME: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -124,5 +130,94 @@ app.use(accessAuth).post("/api/new/client", async (c) => {
     );
   }
 });
+
+// Upload QR Code
+app.use(accessAuth).post("/api/new/qrcode", async (c) => {
+  try {
+    const { image } = await c.req.json();
+
+    if (!image || !image.startsWith("data:image")) {
+      return c.json({ success: false, error: "Invalid image data" }, 400);
+    }
+
+    // Parse base64
+    const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return c.json({ success: false, error: "Invalid base64 string" }, 400);
+    }
+
+    const contentType = matches[1];
+    const buffer = Buffer.from(matches[2], "base64");
+
+    const s3 = new S3Client({
+      region: "eu-central-003",
+      endpoint: c.env.B2_ENDPOINT,
+      credentials: {
+        accessKeyId: c.env.B2_ACCESS_KEY_ID,
+        secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: c.env.B2_BUCKET_NAME,
+        Key: "QRcode/current-qr.img", // Generic extension or fixed
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: "no-cache, no-store, must-revalidate",
+        Metadata: {
+          "uploaded-at": new Date().toISOString() // Track uploads
+        }
+      })
+    );
+
+    return c.json({ success: true, message: "QR Code uploaded successfully" });
+  } catch (error: any) {
+    console.error("Error uploading QR code:", error);
+    return c.json(
+      { success: false, error: "Failed to upload QR code", details: error.message },
+      500
+    );
+  }
+});
+
+// Get QR Code
+app.use(accessAuth).get("/api/qrcode", async (c) => {
+  try {
+    const s3 = new S3Client({
+      region: "eu-central-003",
+      endpoint: c.env.B2_ENDPOINT,
+      credentials: {
+        accessKeyId: c.env.B2_ACCESS_KEY_ID,
+        secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const command = new GetObjectCommand({
+      Bucket: c.env.B2_BUCKET_NAME,
+      Key: "QRcode/current-qr.img",
+    });
+
+    const response = await s3.send(command);
+
+    // Transform stream to byte array
+    const bodyByteArray = await response.Body?.transformToByteArray();
+
+    if (!bodyByteArray) {
+      return c.json({ success: false, error: "Empty file" }, 404);
+    }
+
+    c.header("Content-Type", response.ContentType || "image/png");
+    return c.body(bodyByteArray.buffer as ArrayBuffer);
+
+  } catch (error: any) {
+    console.error("Error fetching QR code:", error);
+    // Return a default or 404
+    return c.json({ success: false, error: "QR Code not found", details: error.message, stack: error.stack }, 404);
+  }
+});
+
+
+
 
 export default app;

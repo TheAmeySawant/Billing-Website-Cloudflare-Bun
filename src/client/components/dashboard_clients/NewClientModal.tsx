@@ -25,7 +25,8 @@ export default function NewClientModal({ isOpen, onClose, onSuccess }: NewClient
             alert("Name is required");
             return;
         }
-
+        const formattedCode = code.startsWith('#') ? code : `#${code}`;
+        console.log(formattedCode);
         setIsLoading(true);
         try {
             const response = await fetch('/api/new/client', {
@@ -35,7 +36,7 @@ export default function NewClientModal({ isOpen, onClose, onSuccess }: NewClient
                 },
                 body: JSON.stringify({
                     name,
-                    code,
+                    code: formattedCode,
                     description
                 }),
             });
