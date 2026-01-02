@@ -11,9 +11,10 @@ interface EditClientModalProps {
     onClose: () => void;
     onSave: (data: ClientData) => void;
     initialData: ClientData;
+    isLoading?: boolean;
 }
 
-export default function EditClientModal({ isOpen, onClose, onSave, initialData }: EditClientModalProps) {
+export default function EditClientModal({ isOpen, onClose, onSave, initialData, isLoading = false }: EditClientModalProps) {
     const [name, setName] = useState(initialData.name);
     const [description, setDescription] = useState(initialData.description);
 
@@ -70,14 +71,29 @@ export default function EditClientModal({ isOpen, onClose, onSave, initialData }
                     <button
                         onClick={onClose}
                         className="btn-secondary"
+                        disabled={isLoading}
                     >
                         Cancel
                     </button>
                     <button
                         className="btn-primary"
                         onClick={handleSave}
+                        disabled={isLoading}
                     >
-                        Save Changes
+                        {isLoading ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span className="spinner" style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    border: '2px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '50%',
+                                    borderTopColor: '#fff',
+                                    animation: 'spin 1s ease-in-out infinite',
+                                    display: 'inline-block'
+                                }}></span>
+                                Saving...
+                            </span>
+                        ) : "Save Changes"}
                     </button>
                 </div>
             </div>

@@ -30,6 +30,12 @@ export default function InvoiceManager() {
     const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
     const [invoiceToDeleteId, setInvoiceToDeleteId] = useState<number | null>(null);
 
+    // Loading States
+    const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+    const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+    const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
+    const [isUpdatingClient, setIsUpdatingClient] = useState(false);
+
     // New Invoice Form State
     const [selectedMonth, setSelectedMonth] = useState('October');
     const [selectedYear, setSelectedYear] = useState('2025');
@@ -37,6 +43,7 @@ export default function InvoiceManager() {
     const [years, setYears] = useState<number[]>([]);
 
     const fetchClientData = async (clientId: string) => {
+        setIsLoadingInvoices(true);
         try {
             const response = await fetch(`/api/client-invoices/${clientId}`);
             if (response.ok) {
@@ -54,9 +61,6 @@ export default function InvoiceManager() {
 
                 const mappedInvoices = data.invoices.map((inv: any, index: number) => {
                     // Parse YYYYMM
-                    // Assuming inv.month is "202511" or similar
-                    // If it's not strictly 6 chars, we might need fallback logic.
-                    // Based on schema, it is TEXT YYYYMM.
                     let monthName = inv.month;
                     let yearStr = "2025"; // Fallback
 
@@ -70,11 +74,8 @@ export default function InvoiceManager() {
                     }
 
                     return {
-                        id: index, // backend doesn't give invoice ID, using index or composite key if available. 
-                        // But for UI keys, let's generate one or use index for now if no unique ID from aggregate query.
-                        // Actually, backend query results don't have a unique ID per row other than composite (client_id, invoice_month).
-                        // We can use invoice_month as key if unique.
-                        internalId: inv.month, // Store the raw value for uniqueness
+                        id: index,
+                        internalId: inv.month,
                         month: monthName,
                         year: yearStr,
                         status: inv.status,
@@ -89,6 +90,51 @@ export default function InvoiceManager() {
             }
         } catch (error) {
             console.error("Error fetching client data:", error);
+        } finally {
+            setIsLoadingInvoices(false);
+        }
+    };
+
+    const fetchInvoices = async (clientId: string) => {
+        setIsLoadingInvoices(true);
+        try {
+            const response = await fetch(`/api/client-invoices/${clientId}/list`);
+            if (response.ok) {
+                const { data } = await response.json();
+
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+
+                const mappedInvoices = data.map((inv: any, index: number) => {
+                    let monthName = inv.month;
+                    let yearStr = "2025";
+
+                    if (inv.month && inv.month.length === 6) {
+                        const y = inv.month.substring(0, 4);
+                        const m = parseInt(inv.month.substring(4, 6), 10);
+                        yearStr = y;
+                        if (m >= 1 && m <= 12) {
+                            monthName = monthNames[m - 1];
+                        }
+                    }
+
+                    return {
+                        id: index,
+                        internalId: inv.month,
+                        month: monthName,
+                        year: yearStr,
+                        status: inv.status,
+                        totalAmount: inv.totalAmount
+                    };
+                });
+                setInvoices(mappedInvoices);
+            } else {
+                console.error("Failed to fetch invoices");
+            }
+        } catch (error) {
+            console.error("Error fetching invoices:", error);
+        } finally {
+            setIsLoadingInvoices(false);
         }
     };
 
@@ -133,24 +179,52 @@ export default function InvoiceManager() {
 
     const sortedInvoices = sortInvoices(invoices);
 
-    const handleSaveInvoice = () => {
-        // Check for duplicate
+    const handleSaveInvoice = async () => {
+        // Check for duplicate (Client-side)
         const exists = invoices.some(inv => inv.month === selectedMonth && inv.year === selectedYear);
         if (exists) {
             setIsDuplicateModalOpen(true);
             return;
         }
 
-        const newInvoice: Invoice = {
-            id: Date.now(),
-            month: selectedMonth,
-            year: selectedYear,
-            status: selectedStatus,
-            totalAmount: 0 // Default
-        };
+        const params = new URLSearchParams(window.location.search);
+        const clientId = params.get('clientId');
+        if (!clientId) {
+            console.error("Client ID not found");
+            return;
+        }
 
-        setInvoices([...invoices, newInvoice]);
-        setIsNewModalOpen(false);
+        setIsCreatingInvoice(true);
+        try {
+            const response = await fetch('/api/new/invoice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clientId: clientId,
+                    month: selectedMonth,
+                    year: selectedYear,
+                    status: selectedStatus
+                })
+            });
+
+            if (response.ok) {
+                setIsNewModalOpen(false);
+                fetchInvoices(clientId);
+            } else if (response.status === 409) {
+                setIsDuplicateModalOpen(true);
+            } else {
+                const res = await response.json();
+                console.error("Failed to create invoice", res.error);
+                alert("Failed to create invoice: " + res.error);
+            }
+        } catch (error) {
+            console.error("Error creating invoice:", error);
+            alert("Error creating invoice");
+        } finally {
+            setIsCreatingInvoice(false);
+        }
     };
 
     const confirmDelete = (id: number) => {
@@ -158,16 +232,70 @@ export default function InvoiceManager() {
         setIsDeleteModalOpen(true);
     };
 
-    const executeDelete = () => {
-        if (invoiceToDeleteId !== null) {
-            setInvoices(invoices.filter(inv => inv.id !== invoiceToDeleteId));
-            setIsDeleteModalOpen(false);
-            setInvoiceToDeleteId(null);
+    const executeDelete = async () => {
+        const invoice = invoices.find(inv => inv.id === invoiceToDeleteId);
+
+        if (invoice) {
+            const params = new URLSearchParams(window.location.search);
+            const clientId = params.get('clientId');
+
+            if (clientId && invoice.internalId) {
+                setIsDeletingInvoice(true);
+                try {
+                    const response = await fetch(`/api/invoice?clientId=${clientId}&invoiceMonth=${invoice.internalId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        fetchInvoices(clientId);
+                        setIsDeleteModalOpen(false);
+                        setInvoiceToDeleteId(null);
+                    } else {
+                        const res = await response.json();
+                        alert("Failed to delete invoice: " + (res.error || "Unknown error"));
+                    }
+                } catch (error) {
+                    console.error("Error deleting invoice:", error);
+                    alert("Error deleting invoice");
+                } finally {
+                    setIsDeletingInvoice(false);
+                }
+            }
         }
     };
 
-    const handleSaveClientData = (newData: ClientData) => {
-        setClientData(newData);
+    const handleSaveClientData = async (newData: ClientData) => {
+        const params = new URLSearchParams(window.location.search);
+        const clientId = params.get('clientId');
+
+        if (!clientId) {
+            console.error("Client ID not found");
+            return;
+        }
+
+        setIsUpdatingClient(true);
+        try {
+            const response = await fetch(`/api/client/${clientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newData)
+            });
+
+            if (response.ok) {
+                setClientData(newData);
+                setIsEditClientModalOpen(false);
+            } else {
+                const res = await response.json();
+                alert("Failed to update client: " + (res.error || "Unknown error"));
+            }
+        } catch (error) {
+            console.error("Error updating client:", error);
+            alert("Error updating client");
+        } finally {
+            setIsUpdatingClient(false);
+        }
     };
 
     return (
@@ -203,6 +331,7 @@ export default function InvoiceManager() {
                 onClose={() => setIsEditClientModalOpen(false)}
                 onSave={handleSaveClientData}
                 initialData={clientData}
+                isLoading={isUpdatingClient}
             />
 
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', marginBottom: '1rem', textTransform: 'uppercase', color: '#fff' }}>
@@ -225,7 +354,7 @@ export default function InvoiceManager() {
                                 </div>
                             </div>
                             <div className="card-footer">
-                                <span className={`status-badge ${invoice.status === 'Paid' ? 'status-paid' : 'status-pending'}`}>
+                                <span className={`status-badge ${invoice.status.toLowerCase() === 'paid' ? 'status-paid' : 'status-pending'}`} style={{ textTransform: 'capitalize' }}>
                                     {invoice.status}
                                 </span>
                                 <button className="btn-delete" onClick={(e) => {
@@ -236,24 +365,45 @@ export default function InvoiceManager() {
                         </a>
                     ))
                 ) : (
-                    <div style={{
-                        gridColumn: '1 / -1',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '3rem',
-                        opacity: 0.7
-                    }}>
-                        <img
-                            className="empty-box"
-                            src="/assets/empty-box.png"
-                            alt="No invoices found"
-                            style={{ maxWidth: '300px', width: '100%', objectFit: 'contain' }}
-                        />
-                        {/* <p style={{ marginTop: '1rem', color: '#888' }}>No invoices found for this client.</p> */}
-                    </div>
-                )}
+                    isLoadingInvoices ? (
+                        <div style={{
+                            gridColumn: '1 / -1',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '3rem',
+                            color: '#fff'
+                        }}>
+                            <div className="spinner" style={{
+                                width: '40px',
+                                height: '40px',
+                                border: '4px solid rgba(255,255,255,0.1)',
+                                borderRadius: '50%',
+                                borderTopColor: 'var(--accent)',
+                                animation: 'spin 1s ease-in-out infinite'
+                            }}></div>
+                            <p style={{ marginTop: '1rem', color: '#888' }}>Loading Invoices...</p>
+                        </div>
+                    ) : (
+                        <div style={{
+                            gridColumn: '1 / -1',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '3rem',
+                            borderRadius: '25%'
+                        }}>
+                            <img
+                                className="empty-box"
+                                src="/assets/empty-box.png"
+                                alt="No invoices found"
+                                style={{ maxWidth: '300px', width: '100%', objectFit: 'contain' }}
+                            />
+                            {/* <p style={{ marginTop: '1rem', color: '#888' }}>No invoices found for this client.</p> */}
+                        </div>
+                    ))}
             </div>
 
             <footer>
@@ -289,8 +439,23 @@ export default function InvoiceManager() {
                         </select>
                     </div>
                     <div className="modal-actions">
-                        <button className="btn-secondary" onClick={() => setIsNewModalOpen(false)}>Cancel</button>
-                        <button className="btn-primary" onClick={handleSaveInvoice}>Save</button>
+                        <button className="btn-secondary" onClick={() => setIsNewModalOpen(false)} disabled={isCreatingInvoice}>Cancel</button>
+                        <button className="btn-primary" onClick={handleSaveInvoice} disabled={isCreatingInvoice}>
+                            {isCreatingInvoice ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="spinner" style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        border: '2px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '50%',
+                                        borderTopColor: '#fff',
+                                        animation: 'spin 1s ease-in-out infinite',
+                                        display: 'inline-block'
+                                    }}></span>
+                                    Saving...
+                                </span>
+                            ) : "Save"}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -303,8 +468,23 @@ export default function InvoiceManager() {
                         Are you sure you want to delete this invoice? This action cannot be undone.
                     </p>
                     <div className="modal-actions">
-                        <button className="btn-secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancel</button>
-                        <button className="btn-primary" style={{ background: '#ff4444', borderColor: '#ff4444', color: '#fff' }} onClick={executeDelete}>Delete</button>
+                        <button className="btn-secondary" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeletingInvoice}>Cancel</button>
+                        <button className="btn-primary" style={{ background: '#ff4444', borderColor: '#ff4444', color: '#fff' }} onClick={executeDelete} disabled={isDeletingInvoice}>
+                            {isDeletingInvoice ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="spinner" style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        border: '2px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '50%',
+                                        borderTopColor: '#fff',
+                                        animation: 'spin 1s ease-in-out infinite',
+                                        display: 'inline-block'
+                                    }}></span>
+                                    Deleting...
+                                </span>
+                            ) : "Delete"}
+                        </button>
                     </div>
                 </div>
             </div>
