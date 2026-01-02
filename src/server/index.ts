@@ -131,7 +131,46 @@ app.use(accessAuth).post("/api/new/client", async (c) => {
   }
 });
 
+// Update Client
+app.use(accessAuth).put("/api/client/:id", async (c) => {
+  try {
+    const clientId = c.req.param("id");
+    const body = await c.req.json();
 
+    // Validate required fields
+    if (!body.name || typeof body.name !== "string" || body.name.trim() === "") {
+      return c.json({ success: false, error: "Name is required" }, 400);
+    }
+
+    const name = body.name.trim();
+    const description = body.description?.trim() || null;
+
+    // Check if client exists
+    const client = await c.env.billingDB
+      .prepare("SELECT * FROM clients WHERE id = ?")
+      .bind(clientId)
+      .first();
+
+    if (!client) {
+      return c.json({ success: false, error: "Client not found" }, 404);
+    }
+
+    // Update client
+    const result = await c.env.billingDB
+      .prepare("UPDATE clients SET name = ?, description = ? WHERE id = ?")
+      .bind(name, description, clientId)
+      .run();
+
+    return c.json({ success: true, message: "Client updated successfully" });
+
+  } catch (error: any) {
+    console.error("Error updating client:", error);
+    return c.json(
+      { success: false, error: "Failed to update client", details: error.message },
+      500
+    );
+  }
+});
 
 // Upload QR Code
 app.use(accessAuth).post("/api/new/qrcode", async (c) => {
@@ -219,6 +258,72 @@ app.use(accessAuth).get("/api/qrcode", async (c) => {
   }
 });
 
+// Get Client Invoice List (Separate Route)
+app.use(accessAuth).get("/api/client-invoices/:client_id/list", async (c) => {
+  try {
+    const clientId = c.req.param("client_id");
+
+    const invoicesResult = await c.env.billingDB
+      .prepare(`
+        SELECT 
+          invoice_month as month,
+          payment_status as status,
+          total_price as totalAmount
+        FROM invoices
+        WHERE client_id = ?
+        ORDER BY invoice_month DESC
+      `)
+      .bind(clientId)
+      .all();
+
+    return c.json({
+      success: true,
+      count: invoicesResult.results.length,
+      data: invoicesResult.results
+    });
+
+  } catch (error: any) {
+    console.error("Error fetching client invoice list:", error);
+    return c.json(
+      { success: false, error: "Failed to fetch client invoice list", details: error.message },
+      500
+    );
+  }
+});
+
+// Delete Invoice
+app.use(accessAuth).delete("/api/invoice", async (c) => {
+  try {
+    const clientId = c.req.query("clientId");
+    const invoiceMonth = c.req.query("invoiceMonth");
+
+    if (!clientId || !invoiceMonth) {
+      return c.json({ success: false, error: "Missing clientId or invoiceMonth" }, 400);
+    }
+
+    // Delete invoice (Cascade will delete projects and images if set up)
+    const result = await c.env.billingDB
+      .prepare("DELETE FROM invoices WHERE client_id = ? AND invoice_month = ?")
+      .bind(clientId, invoiceMonth)
+      .run();
+
+    if (result.meta.changes === 0) {
+      // Optional: treat as success or 404. Idempotent delete is often 200.
+      // But if we want to confirm it verified logic: 
+      // return c.json({ success: false, error: "Invoice not found or already deleted" }, 404);
+    }
+
+    return c.json({ success: true, message: "Invoice deleted successfully" });
+
+  } catch (error: any) {
+    console.error("Error deleting invoice:", error);
+    return c.json(
+      { success: false, error: "Failed to delete invoice", details: error.message },
+      500
+    );
+  }
+});
+
 // Get Client Invoices and Stats
 app.use(accessAuth).get("/api/client-invoices/:client_id", async (c) => {
   try {
@@ -248,27 +353,12 @@ app.use(accessAuth).get("/api/client-invoices/:client_id", async (c) => {
     const invoicesResult = await c.env.billingDB
       .prepare(`
         SELECT 
-          i.invoice_month as month,
-          -- We can extract Year from month string if format is consistent, 
-          -- but typically invoice_month is unique per client.
-          -- Let's return the raw invoice_month and handle splitting in client if needed,
-          -- OR if invoice_month is just the month Name? 
-          -- Looking at InvoiceManager mock data: month='November', year='2025'.
-          -- Looking at Schema: invoice_month TEXT NOT NULL. 
-          -- Schema comment says: YYYYMM (e.g., 202509).
-          -- Wait, mock data in InvoiceManager used "November" and "2025".
-          -- Database schema says invoice_month is "YYYYMM".
-          -- I should stick to DB schema which implies a string like "202511".
-          
-          i.payment_status as status,
-          COALESCE(SUM(p.price), 0) as totalAmount
-        FROM invoices i
-        LEFT JOIN projects p 
-          ON i.client_id = p.client_id 
-          AND i.invoice_month = p.invoice_month
-        WHERE i.client_id = ?
-        GROUP BY i.invoice_month, i.payment_status
-        ORDER BY i.invoice_month DESC
+          invoice_month as month,
+          payment_status as status,
+          total_price as totalAmount
+        FROM invoices
+        WHERE client_id = ?
+        ORDER BY invoice_month DESC
       `)
       .bind(clientId)
       .all();
@@ -300,7 +390,54 @@ app.use(accessAuth).get("/api/client-invoices/:client_id", async (c) => {
   }
 });
 
+// Create New Invoice
+app.use(accessAuth).post("/api/new/invoice", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { clientId, month, year, status } = body;
 
+    if (!clientId || !month || !year) {
+      return c.json({ success: false, error: "Missing required fields" }, 400);
+    }
 
+    // Convert Month Name to Number
+    const monthMap: { [key: string]: string } = {
+      "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+      "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
+    };
+
+    const monthNum = monthMap[month];
+    if (!monthNum) {
+      return c.json({ success: false, error: "Invalid month" }, 400);
+    }
+
+    const invoiceMonth = `${year}${monthNum}`; // YYYYMM
+
+    // Check for duplicate
+    const existing = await c.env.billingDB
+      .prepare("SELECT 1 FROM invoices WHERE client_id = ? AND invoice_month = ?")
+      .bind(clientId, invoiceMonth)
+      .first();
+
+    if (existing) {
+      return c.json({ success: false, error: "Invoice already exists" }, 409);
+    }
+
+    // Insert Invoice
+    await c.env.billingDB
+      .prepare("INSERT INTO invoices (client_id, invoice_month, payment_status) VALUES (?, ?, ?)")
+      .bind(clientId, invoiceMonth, (status || 'Pending').toLowerCase())
+      .run();
+
+    return c.json({ success: true, message: "Invoice created successfully" }, 201);
+
+  } catch (error: any) {
+    if (error.message?.includes("UNIQUE constraint failed")) {
+      return c.json({ success: false, error: "Invoice already exists" }, 409);
+    }
+    console.error("Error creating invoice:", error);
+    return c.json({ success: false, error: "Failed to create invoice", details: error.message }, 500);
+  }
+});
 
 export default app;
