@@ -5,6 +5,7 @@ import ClientSection from './ClientSection';
 
 interface Invoice {
     id: number;
+    internalId?: string;
     month: string;
     year: string;
     status: string;
@@ -17,15 +18,10 @@ interface ClientData {
 }
 
 export default function InvoiceManager() {
-    const [invoices, setInvoices] = useState<Invoice[]>([
-        { id: 1, month: 'November', year: '2025', status: 'Pending', totalAmount: 400 },
-        { id: 2, month: 'October', year: '2025', status: 'Paid', totalAmount: 350 },
-        { id: 3, month: 'September', year: '2025', status: 'Paid', totalAmount: 300 }
-    ]);
-
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [clientData, setClientData] = useState<ClientData>({
-        name: "Dark Winter",
-        description: "Music Production and Bundle"
+        name: "Loading...",
+        description: ""
     });
 
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -35,10 +31,66 @@ export default function InvoiceManager() {
     const [invoiceToDeleteId, setInvoiceToDeleteId] = useState<number | null>(null);
 
     // New Invoice Form State
-    const [selectedMonth, setSelectedMonth] = useState('October'); // Default to current or static
+    const [selectedMonth, setSelectedMonth] = useState('October');
     const [selectedYear, setSelectedYear] = useState('2025');
     const [selectedStatus, setSelectedStatus] = useState('Pending');
     const [years, setYears] = useState<number[]>([]);
+
+    const fetchClientData = async (clientId: string) => {
+        try {
+            const response = await fetch(`/api/client-invoices/${clientId}`);
+            if (response.ok) {
+                const { data } = await response.json();
+
+                // Map Client Data
+                setClientData({
+                    name: data.client.name,
+                    description: data.client.description || ""
+                });
+
+                // Map Invoices
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+
+                const mappedInvoices = data.invoices.map((inv: any, index: number) => {
+                    // Parse YYYYMM
+                    // Assuming inv.month is "202511" or similar
+                    // If it's not strictly 6 chars, we might need fallback logic.
+                    // Based on schema, it is TEXT YYYYMM.
+                    let monthName = inv.month;
+                    let yearStr = "2025"; // Fallback
+
+                    if (inv.month && inv.month.length === 6) {
+                        const y = inv.month.substring(0, 4);
+                        const m = parseInt(inv.month.substring(4, 6), 10); // 1-12
+                        yearStr = y;
+                        if (m >= 1 && m <= 12) {
+                            monthName = monthNames[m - 1];
+                        }
+                    }
+
+                    return {
+                        id: index, // backend doesn't give invoice ID, using index or composite key if available. 
+                        // But for UI keys, let's generate one or use index for now if no unique ID from aggregate query.
+                        // Actually, backend query results don't have a unique ID per row other than composite (client_id, invoice_month).
+                        // We can use invoice_month as key if unique.
+                        internalId: inv.month, // Store the raw value for uniqueness
+                        month: monthName,
+                        year: yearStr,
+                        status: inv.status,
+                        totalAmount: inv.totalAmount
+                    };
+                });
+                setInvoices(mappedInvoices);
+
+            } else {
+                console.error("Failed to fetch client data");
+                setClientData(prev => ({ ...prev, name: "Client Not Found" }));
+            }
+        } catch (error) {
+            console.error("Error fetching client data:", error);
+        }
+    };
 
     useEffect(() => {
         // Set default month/year on mount
@@ -53,10 +105,19 @@ export default function InvoiceManager() {
             yearList.push(i);
         }
         setYears(yearList);
+
+        // Fetch Data based on URL param
+        const params = new URLSearchParams(window.location.search);
+        const clientId = params.get('clientId');
+        if (clientId) {
+            fetchClientData(clientId);
+        }
     }, []);
 
+    // Statistics derived from state
+    // Note: create/delete operations update 'invoices' state, so stats update automatically.
     const totalInvoices = invoices.length;
-    const totalEarnings = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+    const totalEarnings = invoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
 
     const sortInvoices = (list: Invoice[]) => {
         const monthMap: { [key: string]: number } = {
@@ -153,23 +214,46 @@ export default function InvoiceManager() {
             </div>
 
             <div className="invoice-grid">
-                {sortedInvoices.map(invoice => (
-                    <a key={invoice.id} className="invoice-card" style={{textDecoration: 'none'}} href='/invoice'>
-                        <div>
-                            <div className="card-date">{invoice.month}</div>
-                            <div className="card-year">{invoice.year}</div>
-                            <div style={{ color: 'var(--accent)', marginTop: '0.5rem', fontWeight: 'bold' }}>
-                                ₹{invoice.totalAmount || 0}
+                {sortedInvoices.length > 0 ? (
+                    sortedInvoices.map(invoice => (
+                        <a key={invoice.id} className="invoice-card" style={{ textDecoration: 'none' }} href='/invoice'>
+                            <div>
+                                <div className="card-date">{invoice.month}</div>
+                                <div className="card-year">{invoice.year}</div>
+                                <div style={{ color: 'var(--accent)', marginTop: '0.5rem', fontWeight: 'bold' }}>
+                                    ₹{invoice.totalAmount || 0}
+                                </div>
                             </div>
-                        </div>
-                        <div className="card-footer">
-                            <span className={`status-badge ${invoice.status === 'Paid' ? 'status-paid' : 'status-pending'}`}>
-                                {invoice.status}
-                            </span>
-                            <button className="btn-delete" onClick={() => confirmDelete(invoice.id)}>Delete</button>
-                        </div>
-                    </a>
-                ))}
+                            <div className="card-footer">
+                                <span className={`status-badge ${invoice.status === 'Paid' ? 'status-paid' : 'status-pending'}`}>
+                                    {invoice.status}
+                                </span>
+                                <button className="btn-delete" onClick={(e) => {
+                                    e.preventDefault();
+                                    confirmDelete(invoice.id);
+                                }}>Delete</button>
+                            </div>
+                        </a>
+                    ))
+                ) : (
+                    <div style={{
+                        gridColumn: '1 / -1',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '3rem',
+                        opacity: 0.7
+                    }}>
+                        <img
+                            className="empty-box"
+                            src="/assets/empty-box.png"
+                            alt="No invoices found"
+                            style={{ maxWidth: '300px', width: '100%', objectFit: 'contain' }}
+                        />
+                        {/* <p style={{ marginTop: '1rem', color: '#888' }}>No invoices found for this client.</p> */}
+                    </div>
+                )}
             </div>
 
             <footer>

@@ -131,6 +131,8 @@ app.use(accessAuth).post("/api/new/client", async (c) => {
   }
 });
 
+
+
 // Upload QR Code
 app.use(accessAuth).post("/api/new/qrcode", async (c) => {
   try {
@@ -214,6 +216,87 @@ app.use(accessAuth).get("/api/qrcode", async (c) => {
     console.error("Error fetching QR code:", error);
     // Return a default or 404
     return c.json({ success: false, error: "QR Code not found", details: error.message, stack: error.stack }, 404);
+  }
+});
+
+// Get Client Invoices and Stats
+app.use(accessAuth).get("/api/client-invoices/:client_id", async (c) => {
+  try {
+    const clientId = c.req.param("client_id");
+
+    // 1. Get Client Details
+    const client = await c.env.billingDB
+      .prepare("SELECT * FROM clients WHERE id = ?")
+      .bind(clientId)
+      .first();
+
+    if (!client) {
+      return c.json({ success: false, error: "Client not found" }, 404);
+    }
+
+    // 2. Get Invoices with Total Amounts
+    // D1 might not support complex joins with aggregates nicely in one go depending on version, 
+    // but standard SQL should work.
+    // We sum project prices for each invoice.
+
+    /* 
+      Schema reminders:
+      invoices: (client_id, invoice_month) -> PK
+      projects: (client_id, invoice_month) -> FK
+    */
+
+    const invoicesResult = await c.env.billingDB
+      .prepare(`
+        SELECT 
+          i.invoice_month as month,
+          -- We can extract Year from month string if format is consistent, 
+          -- but typically invoice_month is unique per client.
+          -- Let's return the raw invoice_month and handle splitting in client if needed,
+          -- OR if invoice_month is just the month Name? 
+          -- Looking at InvoiceManager mock data: month='November', year='2025'.
+          -- Looking at Schema: invoice_month TEXT NOT NULL. 
+          -- Schema comment says: YYYYMM (e.g., 202509).
+          -- Wait, mock data in InvoiceManager used "November" and "2025".
+          -- Database schema says invoice_month is "YYYYMM".
+          -- I should stick to DB schema which implies a string like "202511".
+          
+          i.payment_status as status,
+          COALESCE(SUM(p.price), 0) as totalAmount
+        FROM invoices i
+        LEFT JOIN projects p 
+          ON i.client_id = p.client_id 
+          AND i.invoice_month = p.invoice_month
+        WHERE i.client_id = ?
+        GROUP BY i.invoice_month, i.payment_status
+        ORDER BY i.invoice_month DESC
+      `)
+      .bind(clientId)
+      .all();
+
+    // 3. Calculate Aggregates
+    const invoices = invoicesResult.results;
+    const totalInvoices = invoices.length;
+    // Cast totalAmount to number as it might be returned as value depending on driver
+    const totalEarnings = invoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+
+    return c.json({
+      success: true,
+      data: {
+        client,
+        invoices,
+        stats: {
+          totalInvoices,
+          totalEarnings
+        }
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Error fetching client invoices:", error);
+    return c.json(
+      { success: false, error: "Failed to fetch client invoices", details: error.message },
+      500
+    );
   }
 });
 

@@ -1,13 +1,14 @@
 interface ClientCardProps {
+    id: number;
     image: string;
     title: string;
     description: string;
     code: string;
 }
 
-export default function ClientCard({ image, title, description, code }: ClientCardProps) {
+export default function ClientCard({ id, image, title, description, code }: ClientCardProps) {
     return (
-        <a href="/clientInvoices" className="client-card">
+        <a href={`/clientInvoices?clientId=${id}`} className="client-card">
             <article className="client-card-inner">
                 <img src={image} alt={title} className="client-card-image" />
                 <div className="client-card-content">

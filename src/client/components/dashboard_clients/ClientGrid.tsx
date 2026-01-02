@@ -23,6 +23,7 @@ export default function ClientGrid({ clients }: ClientGridProps) {
                 {clients.map(client => (
                     <ClientCard
                         key={client.id}
+                        id={client.id}
                         image={client.image}
                         title={client.title}
                         description={client.description}
