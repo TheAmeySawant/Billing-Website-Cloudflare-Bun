@@ -30,6 +30,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/parser": "^8.50.0",
+    "@xmldom/xmldom": "^0.8.11",
     "astro": "^5.16.5",
     "concurrently": "^9.2.1",
     "drizzle-orm": "^0.45.1",

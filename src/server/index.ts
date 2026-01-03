@@ -1,8 +1,28 @@
 import { Hono } from "hono";
 import { accessAuth } from "./middleware/auth";
 import { D1Database } from "@cloudflare/workers-types";
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, DeleteObjectCommand, ListObjectVersionsCommand } from "@aws-sdk/client-s3";
 import { Buffer } from "node:buffer";
+import { DOMParser } from "@xmldom/xmldom";
+
+
+// Polyfill DOMParser and Node for AWS SDK in Cloudflare Workers
+(globalThis as any).DOMParser = DOMParser;
+(globalThis as any).Node = {
+  ELEMENT_NODE: 1,
+  ATTRIBUTE_NODE: 2,
+  TEXT_NODE: 3,
+  CDATA_SECTION_NODE: 4,
+  ENTITY_REFERENCE_NODE: 5,
+  ENTITY_NODE: 6,
+  PROCESSING_INSTRUCTION_NODE: 7,
+  COMMENT_NODE: 8,
+  DOCUMENT_NODE: 9,
+  DOCUMENT_TYPE_NODE: 10,
+  DOCUMENT_FRAGMENT_NODE: 11,
+  NOTATION_NODE: 12
+};
+
 
 type Bindings = {
   billingDB: D1Database;
@@ -199,10 +219,61 @@ app.use(accessAuth).post("/api/new/qrcode", async (c) => {
       },
     });
 
+    const key = "QRcode/current-qr.img";
+
+    // 1. List existing versions
+    let existingVersions;
+    try {
+      existingVersions = await s3.send(
+        new ListObjectVersionsCommand({
+          Bucket: c.env.B2_BUCKET_NAME,
+          Prefix: key,
+        })
+      );
+    } catch (listError: any) {
+      // Return error but keep it clean
+      return c.json({
+        success: false,
+        error: "Failed to list object versions",
+        details: listError.message || String(listError),
+      }, 500);
+    }
+
+    // 2. Delete existing versions if found
+    if (existingVersions.Versions && existingVersions.Versions.length > 0) {
+      const objectsToDelete = existingVersions.Versions
+        .filter(v => v.Key) // Ensure Key exists
+        .map((v) => ({
+          Key: v.Key!,
+          VersionId: v.VersionId,
+        }));
+
+      if (objectsToDelete.length > 0) {
+        try {
+          await s3.send(
+            new DeleteObjectsCommand({
+              Bucket: c.env.B2_BUCKET_NAME,
+              Delete: {
+                Objects: objectsToDelete,
+                Quiet: true,
+              },
+            })
+          );
+        } catch (deleteError: any) {
+          return c.json({
+            success: false,
+            error: "Failed to delete existing versions",
+            details: deleteError.message || String(deleteError),
+          }, 500);
+        }
+      }
+    }
+
+    console.log(`Uploading new QR code version to ${key}`);
     await s3.send(
       new PutObjectCommand({
         Bucket: c.env.B2_BUCKET_NAME,
-        Key: "QRcode/current-qr.img", // Generic extension or fixed
+        Key: key,
         Body: buffer,
         ContentType: contentType,
         CacheControl: "no-cache, no-store, must-revalidate",
@@ -214,9 +285,14 @@ app.use(accessAuth).post("/api/new/qrcode", async (c) => {
 
     return c.json({ success: true, message: "QR Code uploaded successfully" });
   } catch (error: any) {
-    console.error("Error uploading QR code:", error);
     return c.json(
-      { success: false, error: "Failed to upload QR code", details: error.message },
+      {
+        success: false,
+        error: "Failed to upload QR code (General)",
+        details: error.message || String(error),
+        name: error.name,
+        stack: error.stack
+      },
       500
     );
   }
