@@ -440,4 +440,112 @@ app.use(accessAuth).post("/api/new/invoice", async (c) => {
   }
 });
 
+// Get Invoice Details (Client & Invoice Info)
+app.use(accessAuth).get("/api/invoice-details", async (c) => {
+  try {
+    const clientId = c.req.query("clientId");
+    const invoiceMonth = c.req.query("month");
+
+    if (!clientId || !invoiceMonth) {
+      return c.json({ success: false, error: "Missing clientId or month" }, 400);
+    }
+
+    // Get Client Details
+    const client = await c.env.billingDB
+      .prepare("SELECT * FROM clients WHERE id = ?")
+      .bind(clientId)
+      .first();
+
+    if (!client) {
+      return c.json({ success: false, error: "Client not found" }, 404);
+    }
+
+    // Get Invoice Details
+    const invoice = await c.env.billingDB
+      .prepare("SELECT * FROM invoices WHERE client_id = ? AND invoice_month = ?")
+      .bind(clientId, invoiceMonth)
+      .first();
+
+    if (!invoice) {
+      // Technically it might not exist if accessed directly, or could return null
+      return c.json({ success: false, error: "Invoice not found" }, 404);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        client,
+        invoice
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Error fetching invoice details:", error);
+    return c.json({ success: false, error: "Failed to fetch invoice details", details: error.message }, 500);
+  }
+});
+
+// Get Invoice Projects (Projects & Images)
+app.use(accessAuth).get("/api/invoice-projects", async (c) => {
+  try {
+    const clientId = c.req.query("clientId");
+    const invoiceMonth = c.req.query("month");
+
+    if (!clientId || !invoiceMonth) {
+      return c.json({ success: false, error: "Missing clientId or month" }, 400);
+    }
+
+    // Get Projects
+    const projectsResult = await c.env.billingDB
+      .prepare(`
+        SELECT * FROM projects 
+        WHERE client_id = ? AND invoice_month = ?
+        ORDER BY created_at DESC
+      `)
+      .bind(clientId, invoiceMonth)
+      .all();
+
+    const projects = projectsResult.results;
+
+    // Get Images for these projects
+    // We can do this efficiently by fetching all images for these projects OR one by one.
+    // Given the scale, fetching all images for this invoice's projects is better.
+    // D1 doesn't support array parameters in WHERE IN easily without dynamic SQL construction or multiple queries.
+    // We will iterate for now or do a join if possible.
+
+    // Let's try a JOIN query to get everything in one go, then restructure in code.
+    // Actually, separating might be cleaner for debugging, but let's try to be efficient.
+
+    // Alternative: Get all images linked to projects of this invoice.
+    // We need project IDs.
+
+    const projectsWithImages = await Promise.all(projects.map(async (project: any) => {
+      const imagesResult = await c.env.billingDB
+        .prepare("SELECT url FROM images WHERE project_id = ? ORDER BY `order` ASC")
+        .bind(project.id)
+        .all();
+
+      // Map to just strings as per frontend expectation (Project interface has images: string[])
+      const imageUrls = imagesResult.results.map((img: any) => img.url);
+
+      return {
+        ...project,
+        // Map DB fields to Frontend expected fields if differing
+        // Frontend expects: id, name, type, amount, images
+        amount: project.price, // DB is price, Frontend is amount
+        images: imageUrls
+      };
+    }));
+
+    return c.json({
+      success: true,
+      data: projectsWithImages
+    });
+
+  } catch (error: any) {
+    console.error("Error fetching invoice projects:", error);
+    return c.json({ success: false, error: "Failed to fetch invoice projects", details: error.message }, 500);
+  }
+});
+
 export default app;

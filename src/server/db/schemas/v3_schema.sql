@@ -20,7 +20,7 @@ CREATE TABLE clients (
 -- Composite PK: (client_id, invoice_month)
 -- =====================================
 CREATE TABLE invoices (
-  invoice_month TEXT NOT NULL,
+  invoice_month TEXT NOT NULL,  -- YYYYMM (e.g., 202509)
   client_id INTEGER NOT NULL,
   payment_status TEXT NOT NULL CHECK (payment_status IN ('paid', 'pending')) DEFAULT 'pending',
   total_price REAL NOT NULL DEFAULT 0 CHECK (total_price >= 0),

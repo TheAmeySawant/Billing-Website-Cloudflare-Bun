@@ -345,7 +345,7 @@ export default function InvoiceManager() {
             <div className="invoice-grid">
                 {sortedInvoices.length > 0 ? (
                     sortedInvoices.map(invoice => (
-                        <a key={invoice.id} className="invoice-card" style={{ textDecoration: 'none' }} href='/invoice'>
+                        <a key={invoice.id} className="invoice-card" style={{ textDecoration: 'none' }} href={`/invoice?clientId=${new URLSearchParams(window.location.search).get('clientId')}&month=${invoice.internalId}`}>
                             <div>
                                 <div className="card-date">{invoice.month}</div>
                                 <div className="card-year">{invoice.year}</div>

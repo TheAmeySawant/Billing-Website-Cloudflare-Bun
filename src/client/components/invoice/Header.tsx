@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 
 interface HeaderProps {
   onOpenModal: () => void;
+  clientCode?: string;
+  month: string;
+  year: string;
+  status: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onOpenModal }) => {
+const Header: React.FC<HeaderProps> = ({ onOpenModal, clientCode, month, year, status: initialStatus }) => {
   const [shareBtnText, setShareBtnText] = useState('Share');
   const [shareBtnStyle, setShareBtnStyle] = useState({});
-  const [status, setStatus] = useState<'PENDING' | 'PAID'>('PENDING');
+  // Initialize with prop, but allow local toggle (which should ideally update backend too, but keeping it simple/local for now as per minimal prompt)
+  const [status, setStatus] = useState<'PENDING' | 'PAID'>(initialStatus.toUpperCase() as 'PENDING' | 'PAID');
+
+  // Update local state if prop changes (e.g. after fetch)
+  React.useEffect(() => {
+    setStatus(initialStatus.toUpperCase() as 'PENDING' | 'PAID');
+  }, [initialStatus]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -28,8 +38,8 @@ const Header: React.FC<HeaderProps> = ({ onOpenModal }) => {
         <span>CREATIVE SERVICES</span>
       </div>
       <div className="invoice-meta">
-        <div className="tag">#DW003</div>
-        <p>November | 2025</p>
+        <div className="tag">{clientCode || "#CLIENT"}</div>
+        <p>{month} | {year}</p>
 
         <div
           className="status-toggle-container"
