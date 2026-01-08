@@ -17,6 +17,9 @@ const InvoiceManager: React.FC = () => {
     // --- State ---
     const [projects, setProjects] = useState<Project[]>([]);
 
+    // Query Params
+    const [queryParams, setQueryParams] = useState<{ clientId: string | null; month: string | null }>({ clientId: null, month: null });
+
     // Dynamic Data State
     const [clientData, setClientData] = useState({ name: "", description: "", code: "" });
     const [invoiceMeta, setInvoiceMeta] = useState({ month: "", year: "", status: "Pending" });
@@ -55,6 +58,8 @@ const InvoiceManager: React.FC = () => {
             const params = new URLSearchParams(window.location.search);
             const clientId = params.get('clientId');
             const monthParam = params.get('month'); // YYYYMM
+
+            setQueryParams({ clientId, month: monthParam });
 
             if (!clientId || !monthParam) {
                 // Determine if we should redirect or show error. For now, empty or error.
@@ -134,16 +139,18 @@ const InvoiceManager: React.FC = () => {
     // --- Actions ---
     const handleAddProject = (projectData: Omit<Project, 'id'> | Project) => {
         if ('id' in projectData) {
-            // Edit Local State (Ideally update backend too)
-            // Note: Since the prompt is about "navigation" and "fetching", implementing full CRUD for *items* 
-            // inside the invoice page might be out of scope or require more API routes.
-            // For now, I will update local state. The user prompt says "create separate routes for fetching... so that projects... can be updated dynamically". 
-            // It doesn't explicitly ask for CRUD implementation on the backend for projects (insert/update/delete).
-            // However, normally "updated dynamically" implies fetching.
-            // I'll keep local state update logic for now. 
-            setProjects(prev => prev.map(p => p.id === projectData.id ? projectData as Project : p));
+            // Check if it exists in current state
+            const exists = projects.some(p => p.id === projectData.id);
+
+            if (exists) {
+                // Edit Local State
+                setProjects(prev => prev.map(p => p.id === projectData.id ? projectData as Project : p));
+            } else {
+                // New Project (ID provided by backend)
+                setProjects(prev => [projectData as Project, ...prev]);
+            }
         } else {
-            // Add
+            // Add (Fallback for local ID generation)
             const newProject = { ...projectData, id: Date.now() };
             setProjects(prev => [newProject, ...prev]);
         }
@@ -175,14 +182,6 @@ const InvoiceManager: React.FC = () => {
         setIsProjectModalOpen(true);
     };
 
-    if (isLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#111', color: '#fff' }}>
-                Loading Invoice...
-            </div>
-        );
-    }
-
     return (
         <>
             <div className="scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
@@ -194,10 +193,12 @@ const InvoiceManager: React.FC = () => {
             <div className="container">
                 <Header
                     onOpenModal={openNewProjectModal}
+                    clientId={queryParams.clientId || ''}
                     clientCode={clientData.code}
                     month={invoiceMeta.month}
                     year={invoiceMeta.year}
                     status={invoiceMeta.status}
+                    isLoading={isLoading}
                 />
 
                 <ClientSection
@@ -206,15 +207,21 @@ const InvoiceManager: React.FC = () => {
                     clientDescription={clientData.description}
                     month={invoiceMeta.month}
                     year={invoiceMeta.year}
+                    isLoading={isLoading}
                 />
 
                 <ProjectsGrid
                     projects={projects}
                     onEdit={handleEditClick}
                     onDelete={handleDeleteClick}
+                    isLoading={isLoading}
                 />
 
-                <Summary totalItems={projects.length} totalAmount={totalAmount} />
+                <Summary
+                    totalItems={projects.length}
+                    totalAmount={totalAmount}
+                    isLoading={isLoading}
+                />
 
                 <Payment />
 
@@ -226,12 +233,15 @@ const InvoiceManager: React.FC = () => {
                 onClose={() => setIsProjectModalOpen(false)}
                 onSubmit={handleAddProject}
                 initialData={editingProject}
+                clientId={queryParams.clientId}
+                invoiceId={queryParams.month}
             />
 
             <DeleteModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
+                projectId={projectToDeleteId}
             />
         </>
     );

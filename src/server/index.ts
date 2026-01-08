@@ -583,33 +583,54 @@ app.use(accessAuth).get("/api/invoice-projects", async (c) => {
 
     const projects = projectsResult.results;
 
-    // Get Images for these projects
-    // We can do this efficiently by fetching all images for these projects OR one by one.
-    // Given the scale, fetching all images for this invoice's projects is better.
-    // D1 doesn't support array parameters in WHERE IN easily without dynamic SQL construction or multiple queries.
-    // We will iterate for now or do a join if possible.
-
-    // Let's try a JOIN query to get everything in one go, then restructure in code.
-    // Actually, separating might be cleaner for debugging, but let's try to be efficient.
-
-    // Alternative: Get all images linked to projects of this invoice.
-    // We need project IDs.
+    // Instantiate S3 Client
+    const s3 = new S3Client({
+      region: "eu-central-003",
+      endpoint: c.env.B2_ENDPOINT,
+      credentials: {
+        accessKeyId: c.env.B2_ACCESS_KEY_ID,
+        secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+      },
+    });
 
     const projectsWithImages = await Promise.all(projects.map(async (project: any) => {
+      // Get Image Keys from DB
       const imagesResult = await c.env.billingDB
         .prepare("SELECT url FROM images WHERE project_id = ? ORDER BY `order` ASC")
         .bind(project.id)
         .all();
 
-      // Map to just strings as per frontend expectation (Project interface has images: string[])
-      const imageUrls = imagesResult.results.map((img: any) => img.url);
+      const imageKeys = imagesResult.results.map((img: any) => img.url);
+
+      // Fetch Image Data from B2
+      const imageUrls = await Promise.all(imageKeys.map(async (key: string) => {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: c.env.B2_BUCKET_NAME,
+            Key: key,
+          });
+          const response = await s3.send(command);
+
+          if (!response.Body) return null;
+
+          const byteArray = await response.Body.transformToByteArray();
+          const base64 = Buffer.from(byteArray).toString('base64');
+          return `data:${response.ContentType || 'image/png'};base64,${base64}`;
+        } catch (err) {
+          console.error(`Failed to fetch image ${key}:`, err);
+          return null; // or placeholder?
+        }
+      }));
+
+      // Filter out failed fetches
+      const validImages = imageUrls.filter(url => url !== null);
 
       return {
         ...project,
         // Map DB fields to Frontend expected fields if differing
         // Frontend expects: id, name, type, amount, images
         amount: project.price, // DB is price, Frontend is amount
-        images: imageUrls
+        images: validImages
       };
     }));
 
@@ -621,6 +642,469 @@ app.use(accessAuth).get("/api/invoice-projects", async (c) => {
   } catch (error: any) {
     console.error("Error fetching invoice projects:", error);
     return c.json({ success: false, error: "Failed to fetch invoice projects", details: error.message }, 500);
+  }
+});
+
+// Update Invoice Status
+app.use(accessAuth).post("/api/update/invoice-status", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { clientId, month, year, status } = body;
+
+    if (!clientId || !month || !year || !status) {
+      return c.json({ success: false, error: "Missing required fields" }, 400);
+    }
+
+    // Convert Month Name to Number
+    const monthMap: { [key: string]: string } = {
+      "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+      "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
+    };
+
+    const monthNum = monthMap[month];
+    if (!monthNum) {
+      return c.json({ success: false, error: "Invalid month" }, 400);
+    }
+
+    const invoiceMonth = `${year}${monthNum}`; // YYYYMM
+
+    // Validate Status
+    // CHECK (payment_status IN ('paid', 'pending'))
+    if (!['paid', 'pending'].includes(status.toLowerCase())) {
+      return c.json({ success: false, error: "Invalid status. Must be 'paid' or 'pending'" }, 400);
+    }
+
+    const result = await c.env.billingDB
+      .prepare("UPDATE invoices SET payment_status = ?, updated_at = ? WHERE client_id = ? AND invoice_month = ?")
+      .bind(status.toLowerCase(), new Date().toISOString().replace('T', ' ').substring(0, 19), clientId, invoiceMonth)
+      .run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: "Invoice not found or no change" }, 404);
+    }
+
+    return c.json({ success: true, message: "Invoice status updated successfully" });
+
+  } catch (error: any) {
+    console.error("Error updating invoice status:", error);
+    return c.json({ success: false, error: "Failed to update invoice status", details: error.message }, 500);
+  }
+});
+
+// Create New Project with Images
+app.use(accessAuth).post("/api/new/project", async (c) => {
+  let uploadedKeys: string[] = [];
+  let projectId: number | null = null;
+  const s3 = new S3Client({
+    region: "eu-central-003",
+    endpoint: c.env.B2_ENDPOINT,
+    credentials: {
+      accessKeyId: c.env.B2_ACCESS_KEY_ID,
+      secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+    },
+  });
+
+  try {
+    const body = await c.req.json();
+    const { clientId, invoiceId, name, type, amount, images } = body;
+
+    // Validate Input
+    if (!clientId || !invoiceId || !name || !type || amount === undefined || !images) {
+      return c.json({ success: false, error: "Missing required fields" }, 400);
+    }
+
+    // 1. Insert Project into D1
+    // We do this first to get the Project ID for the path
+    const projectResult = await c.env.billingDB
+      .prepare(
+        "INSERT INTO projects (name, client_id, invoice_month, project_type, price) VALUES (?, ?, ?, ?, ?) RETURNING id"
+      )
+      .bind(name, clientId, invoiceId, type, Number(amount))
+      .first();
+
+    if (!projectResult || !projectResult.id) {
+      throw new Error("Failed to create project record");
+    }
+
+    projectId = projectResult.id as number;
+
+    // 2. Upload Images to Backblaze B2
+    // Path: Clients/clientId/invoiceId/projectId/Thumbnail1 (or Type + index)
+    // Note: User requested "Thumbnail1", "Thumbnail2", etc. based on Type.
+    // We will use "{Type}{Index + 1}" as the filename.
+
+    const uploadPromises = images.map(async (imgStr: string, index: number) => {
+      // Parse Base64
+      const matches = imgStr.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        throw new Error("Invalid image format");
+      }
+
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], "base64");
+
+      // Determine file extension
+      let ext = "png"; // default
+      if (contentType === "image/jpeg") ext = "jpg";
+      else if (contentType === "image/webp") ext = "webp";
+      else if (contentType === "image/gif") ext = "gif";
+      // else keep png
+
+      const filename = `${type}${index + 1}.${ext}`;
+      const key = `Clients/${clientId}/${invoiceId}/${projectId}/${filename}`;
+
+      // Upload
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: c.env.B2_BUCKET_NAME,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+        })
+      );
+
+      return key; // Return valid key on success
+    });
+
+    // Wait for all uploads
+    // If one fails, Promise.all throws, going to catch block
+    uploadedKeys = await Promise.all(uploadPromises);
+
+    // 3. Insert Images into D1
+    const imageStmt = c.env.billingDB.prepare(
+      "INSERT INTO images (url, project_id, `order`) VALUES (?, ?, ?)"
+    );
+
+    const batch = uploadedKeys.map((key, index) =>
+      imageStmt.bind(key, projectId, index)
+    );
+
+    await c.env.billingDB.batch(batch);
+
+    return c.json({ success: true, message: "Project created successfully", projectId });
+
+  } catch (error: any) {
+    console.error("Error creating project:", error);
+
+    // Rollback Strategy
+
+    // 1. Delete Project from D1 (Cascade delete will remove any images if they were inserted)
+    if (projectId) {
+      try {
+        await c.env.billingDB
+          .prepare("DELETE FROM projects WHERE id = ?")
+          .bind(projectId)
+          .run();
+        console.log(`Rolled back project ${projectId}`);
+      } catch (dbError) {
+        console.error(`Failed to rollback project ${projectId}:`, dbError);
+      }
+    }
+
+    // 2. Delete Uploaded Objects from B2
+    if (uploadedKeys.length > 0) {
+      try {
+        const objectsToDelete = uploadedKeys.map(key => ({ Key: key }));
+        await s3.send(
+          new DeleteObjectsCommand({
+            Bucket: c.env.B2_BUCKET_NAME,
+            Delete: {
+              Objects: objectsToDelete,
+              Quiet: true
+            }
+          })
+        );
+        console.log(`Rolled back ${uploadedKeys.length} images from B2`);
+      } catch (s3Error) {
+        console.error("Failed to rollback images from B2:", s3Error);
+      }
+    }
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to create project",
+        details: error.message
+      },
+      500
+    );
+  }
+});
+
+// Update Project (Atomic)
+app.use(accessAuth).post("/api/update/project", async (c) => {
+  let uploadedKeys: string[] = []; // Track new uploads for rollback
+  const s3 = new S3Client({
+    region: "eu-central-003",
+    endpoint: c.env.B2_ENDPOINT,
+    credentials: {
+      accessKeyId: c.env.B2_ACCESS_KEY_ID,
+      secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+    },
+  });
+
+  try {
+    const body = await c.req.json();
+    const { id, clientId, invoiceId, updates } = body;
+
+    if (!id || !clientId || !invoiceId || !updates) {
+      return c.json({ success: false, error: "Missing required fields" }, 400);
+    }
+
+    // 1. Fetch Current Project Images (for Diffing)
+    const currentImagesResult = await c.env.billingDB
+      .prepare("SELECT * FROM images WHERE project_id = ?")
+      .bind(id)
+      .all();
+    const currentImages = currentImagesResult.results as { id: number, url: string, order: number }[];
+    const currentUrlSet = new Set(currentImages.map(img => img.url));
+
+    // 2. Calculate Diff
+    // Payload `updates.images` is the FULL desired state (array of strings: URLs or Base64)
+    const desiredImages = updates.images as string[];
+
+    const imagesToAdd: { index: number, data: string }[] = [];
+    const imagesToKeep: { index: number, url: string }[] = [];
+    const urlsInPayload = new Set<string>();
+
+    desiredImages.forEach((imgStr, index) => {
+      if (imgStr.startsWith('data:image')) {
+        imagesToAdd.push({ index, data: imgStr });
+      } else {
+        imagesToKeep.push({ index, url: imgStr });
+        urlsInPayload.add(imgStr);
+      }
+    });
+
+    // Images to Remove = Current DB Images NOT in Payload
+    const imagesToRemove = currentImages.filter(img => !urlsInPayload.has(img.url));
+
+    // 3. Upload NEW Images to B2
+    const uploadPromises = imagesToAdd.map(async (item) => {
+      const { index, data } = item;
+      const matches = data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) throw new Error("Invalid image format");
+
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], "base64");
+
+      let ext = "png";
+      if (contentType === "image/jpeg") ext = "jpg";
+      else if (contentType === "image/webp") ext = "webp";
+      else if (contentType === "image/gif") ext = "gif";
+
+      // Unique filename: {Type}{Index + 1}_{Random}.{ext} to avoid collisions/caching
+      const randomSuffix = Math.random().toString(36).substring(2, 7);
+      const filename = `${updates.type || 'Image'}${index + 1}_${randomSuffix}.${ext}`;
+      const key = `Clients/${clientId}/${invoiceId}/${id}/${filename}`;
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: c.env.B2_BUCKET_NAME,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+        })
+      );
+      return { index, key };
+    });
+
+    const uploadedResults = await Promise.all(uploadPromises);
+    uploadedResults.forEach(r => uploadedKeys.push(r.key));
+
+    // 4. DB Transaction (Manual Batching since D1 doesn't have true interactive transactions yet in all drivers, but batch is atomic-ish)
+    // We will construct a batch of statements.
+
+    const statements: any[] = [];
+
+    // 4a. Update Project Details
+    if (updates.name || updates.type || updates.amount !== undefined) {
+      statements.push(
+        c.env.billingDB.prepare("UPDATE projects SET name = ?, project_type = ?, price = ? WHERE id = ?")
+          .bind(
+            updates.name || (await c.env.billingDB.prepare("SELECT name FROM projects WHERE id = ?").bind(id).first())?.name,
+            updates.type || (await c.env.billingDB.prepare("SELECT project_type FROM projects WHERE id = ?").bind(id).first())?.project_type,
+            updates.amount !== undefined ? Number(updates.amount) : (await c.env.billingDB.prepare("SELECT price FROM projects WHERE id = ?").bind(id).first())?.price,
+            id
+          )
+      );
+    }
+
+    // 4b. Delete Removed Images from DB
+    if (imagesToRemove.length > 0) {
+      const removeIds = imagesToRemove.map(img => img.id).join(',');
+      // D1 Prepare doesn't support IN (?) with array directly well, better to loop or separate
+      // Actually, let's just delete by ID.
+      imagesToRemove.forEach(img => {
+        statements.push(c.env.billingDB.prepare("DELETE FROM images WHERE id = ?").bind(img.id));
+      });
+    }
+
+    // 4c. Insert New Images
+    uploadedResults.forEach(item => {
+      statements.push(
+        c.env.billingDB.prepare("INSERT INTO images (url, project_id, `order`) VALUES (?, ?, ?)")
+          .bind(item.key, id, item.index)
+      );
+    });
+
+    // 4d. Update Order of Kept Images
+    imagesToKeep.forEach(item => {
+      statements.push(
+        c.env.billingDB.prepare("UPDATE images SET `order` = ? WHERE project_id = ? AND url = ?")
+          .bind(item.index, id, item.url)
+      );
+    });
+
+    // Execute Batch
+    if (statements.length > 0) {
+      await c.env.billingDB.batch(statements);
+    }
+
+    // 5. Cleanup: Delete Removed Images from B2 (Only if DB success)
+    if (imagesToRemove.length > 0) {
+      // Robust Deletion Logic (List Versions + Delete)
+      for (const img of imagesToRemove) {
+        const key = img.url;
+        try {
+          // List versions
+          const versions = await s3.send(new ListObjectVersionsCommand({
+            Bucket: c.env.B2_BUCKET_NAME,
+            Prefix: key
+          }));
+
+          if (versions.Versions && versions.Versions.length > 0) {
+            const objectsToDelete = versions.Versions.map(v => ({ Key: v.Key!, VersionId: v.VersionId }));
+            await s3.send(new DeleteObjectsCommand({
+              Bucket: c.env.B2_BUCKET_NAME,
+              Delete: { Objects: objectsToDelete, Quiet: true }
+            }));
+          }
+        } catch (cleanupErr) {
+          console.error(`Failed to cleanup B2 key ${key}:`, cleanupErr);
+          // Don't fail the request, just log.
+        }
+      }
+    }
+
+    return c.json({ success: true, message: "Project updated successfully" });
+
+  } catch (error: any) {
+    console.error("Error updating project:", error);
+
+    // Rollback: Delete newly uploaded B2 files
+    if (uploadedKeys.length > 0) {
+      for (const key of uploadedKeys) {
+        try {
+          const versions = await s3.send(new ListObjectVersionsCommand({
+            Bucket: c.env.B2_BUCKET_NAME,
+            Prefix: key
+          }));
+          if (versions.Versions && versions.Versions.length > 0) {
+            const objectsToDelete = versions.Versions.map(v => ({ Key: v.Key!, VersionId: v.VersionId }));
+            await s3.send(new DeleteObjectsCommand({
+              Bucket: c.env.B2_BUCKET_NAME,
+              Delete: { Objects: objectsToDelete, Quiet: true }
+            }));
+          }
+        } catch (rbErr) {
+          console.error(`Failed to rollback B2 key ${key}:`, rbErr);
+        }
+      }
+    }
+
+    return c.json({ success: false, error: "Failed to update project", details: error.message }, 500);
+  }
+});
+
+// Delete Project (Atomic)
+app.use(accessAuth).post("/api/delete/project", async (c) => {
+  const s3 = new S3Client({
+    region: "eu-central-003",
+    endpoint: c.env.B2_ENDPOINT,
+    credentials: {
+      accessKeyId: c.env.B2_ACCESS_KEY_ID,
+      secretAccessKey: c.env.B2_SECRET_ACCESS_KEY,
+    },
+  });
+
+  try {
+    const body = await c.req.json();
+    const { id } = body;
+
+    if (!id) {
+      return c.json({ success: false, error: "Missing project ID" }, 400);
+    }
+
+    // 1. Fetch Project Details (Needed for B2 Prefix construction)
+    const project = await c.env.billingDB
+      .prepare("SELECT client_id, invoice_month FROM projects WHERE id = ?")
+      .bind(id)
+      .first();
+
+    if (!project) {
+      return c.json({ success: false, error: "Project not found" }, 404);
+    }
+
+    const { client_id: clientId, invoice_month: invoiceMonth } = project;
+
+    // 2. DB Transaction (Delete)
+    const batchResult = await c.env.billingDB.batch([
+      // Delete images first (FK cascade might handle this, but explicit is safer/clearer)
+      c.env.billingDB.prepare("DELETE FROM images WHERE project_id = ?").bind(id),
+      c.env.billingDB.prepare("DELETE FROM projects WHERE id = ?").bind(id)
+    ]);
+
+    // Check if delete was successful (at least project delete)
+    // batchResult[1] is the project delete
+    if (!batchResult[1].success) {
+      throw new Error("Failed to delete project from database");
+    }
+
+    // 3. B2 Cleanup (Soft Fail)
+    let warning = null;
+    try {
+      const prefix = `Clients/${clientId}/${invoiceMonth}/${id}/`;
+
+      // List all versions
+      const versions = await s3.send(new ListObjectVersionsCommand({
+        Bucket: c.env.B2_BUCKET_NAME,
+        Prefix: prefix
+      }));
+
+      if (versions.Versions && versions.Versions.length > 0) {
+        const objectsToDelete = versions.Versions.map(v => ({ Key: v.Key!, VersionId: v.VersionId }));
+        // Batch Delete
+        await s3.send(new DeleteObjectsCommand({
+          Bucket: c.env.B2_BUCKET_NAME,
+          Delete: { Objects: objectsToDelete, Quiet: true }
+        }));
+      } else {
+        // Try listing standard objects if versions invalid or empty (fallback, though ListObjectVersions usually covers it)
+        const objects = await s3.send(new ListObjectsV2Command({
+          Bucket: c.env.B2_BUCKET_NAME,
+          Prefix: prefix
+        }));
+
+        if (objects.Contents && objects.Contents.length > 0) {
+          const objectsToDelete = objects.Contents.map(v => ({ Key: v.Key! }));
+          await s3.send(new DeleteObjectsCommand({
+            Bucket: c.env.B2_BUCKET_NAME,
+            Delete: { Objects: objectsToDelete, Quiet: true }
+          }));
+        }
+      }
+
+    } catch (b2Error: any) {
+      console.error("B2 Cleanup Failed:", b2Error);
+      warning = "Project deleted locally, but failed to cleanup cloud storage files.";
+    }
+
+    return c.json({ success: true, message: "Project deleted successfully", warning });
+
+  } catch (error: any) {
+    console.error("Error deleting project:", error);
+    return c.json({ success: false, error: "Failed to delete project", details: error.message }, 500);
   }
 });
 
