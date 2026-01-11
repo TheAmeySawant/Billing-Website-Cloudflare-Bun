@@ -56,7 +56,10 @@ const Header: React.FC<HeaderProps> = ({ onOpenModal, clientId, clientCode, mont
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
+    const newBase = "https://dzynsbysoham.amey01962.workers.dev";
+    const targetUrl = newBase + window.location.pathname + window.location.search;
+
+    navigator.clipboard.writeText(targetUrl).then(() => {
       setShareBtnText("Copied!");
       // ... same logic
       setShareBtnStyle({ background: "var(--accent)", color: "#000" });
